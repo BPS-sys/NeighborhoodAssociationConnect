@@ -47,7 +47,7 @@ def get_all_news_json(region_id, page_size=100, last_doc=None):
         # Firebase初期化（シングルトンパターン）
         if not firebase_admin._apps:
             cred = credentials.Certificate(
-                r"C:\Users\saiha\Downloads\Firebase_地域共生ID.json"
+                r"Firebase_地域共生ID.json"
             )
             firebase_admin.initialize_app(cred)
 

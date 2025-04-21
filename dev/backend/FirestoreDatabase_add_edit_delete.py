@@ -1,5 +1,4 @@
 
-
 from datetime import datetime
 import firebase_admin
 from firebase_admin import credentials, firestore
@@ -9,7 +8,7 @@ from firebase_admin import credentials, firestore
 # Firebaseの初期化
 def initialize_firebase():
     if not firebase_admin._apps:
-        cred = credentials.Certificate(r"C:\Users\saiha\Downloads\Firebase_地域共生ID.json")
+        cred = credentials.Certificate(r"Firebase_地域共生ID.json")
         firebase_admin.initialize_app(cred)
         return firestore.client()
 
