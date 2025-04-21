@@ -1,11 +1,9 @@
 
-import requests
-import re
+
 from datetime import datetime
-from firebase_admin import firestore
 import firebase_admin
 from firebase_admin import credentials, firestore
-import json
+
 
 
 # Firebaseの初期化
