@@ -1,8 +1,8 @@
 
 from datetime import datetime
-from firebase_admin import firestore
 import firebase_admin
 from firebase_admin import credentials, firestore
+
 
 
 # Firebaseの初期化
@@ -31,12 +31,14 @@ def add_news(db, region_id):
         title = input("ニュースタイトルを入力: ")
         text = input("本文を入力: ")
         current_time = datetime.now()
+        columns = input("カテゴリを入力(例:防犯、イベント、防災): ")
 
         # データ構造（フィールド名統一）
         news_data = {
             'Title': title,
             'Text': text,          # フィールド名をtextに統一
             'Time': current_time,
+            'columns' : columns
         }
 
         # ID処理分岐
@@ -55,6 +57,7 @@ def add_news(db, region_id):
         print(f"id: {result_id}")
         print(f"Title: {title}")
         print(f"Time: {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"columns: {columns}")
 
         return result_id
 
@@ -80,17 +83,20 @@ def edit_news(db, region_id):
         current_data = doc.to_dict()
         print("\n【現在の情報】")
         print(f"Title: {current_data.get('Title', '')}")
-        print(f"Text: {current_data.get('Text', '')}\n")
+        print(f"Text: {current_data.get('Text', '')}")
+        print(f"columns: {current_data.get('columns', '')}\n")
 
         # 新しいデータ入力
         new_title = input("新しいタイトル（未変更の場合はEnter）: ") or current_data.get('title')
         new_text = input("新しい本文（未変更の場合はEnter）: ") or current_data.get('text')
+        new_columns = input("新しいカテゴリ(例:防犯、イベント、防災)（未変更の場合はEnter）: ") or current_data.get('columns')
 
         # 更新処理
         update_data = {
             'Title': new_title,
             'Text': new_text,
-            'Time': datetime.now()
+            'Time': datetime.now(),
+            'columns' : new_columns
         }
         news_ref.update(update_data)
         
