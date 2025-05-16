@@ -1,11 +1,16 @@
+
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+
 
 const HomeScreen = () => {
   return (
-    <View style={styles.container}>
-      <Text>ホーム画面</Text>
-    </View>
+    <>
+      <View style={styles.container}>
+        <Text>ホーム画面</Text>
+      </View>
+      
+    </>
   );
 };
 

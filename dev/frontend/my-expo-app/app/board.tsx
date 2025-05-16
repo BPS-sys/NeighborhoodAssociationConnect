@@ -1,11 +1,24 @@
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
+import BulletDetailScreen from '../screens/BulletDetailScreen';
+import BulletHomeScreen from '../screens/BulletHomeScreen';
+
+export type RootStackParamList = {
+  Home: undefined;
+  Detail: { title: string; date: string; content: string };
+};
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function BoardScreen() {
   return (
-    <View style={styles.container}>
-      <Text>掲示板画面</Text>
-    </View>
+    <>
+      <Stack.Navigator>
+        <Stack.Screen name="Home" component={BulletHomeScreen} />
+        <Stack.Screen name="Detail" component={BulletDetailScreen} />
+      </Stack.Navigator>
+    </>
   );
 }
 
