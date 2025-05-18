@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 import uvicorn
 from starlette.middleware.cors import CORSMiddleware
-from api.firebase import firebase_reading
+from services import firebase_reading
 
 
 app = FastAPI()
@@ -24,4 +24,5 @@ def SearchNews(RegionID:str):
     
 
 if __name__ == "__main__":
+    # ugyGiVvlg4fDN2afMnoe(RegionID)
     uvicorn.run("main:app", host="0.0.0.0", port=8080, reload=True, log_level="debug")
