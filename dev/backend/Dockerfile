@@ -1,17 +1,20 @@
+
 FROM python:3.11.3-slim
 
-# Allow statements and log messages to immediately appear in the Knative logs
-ENV PYTHONUNBUFFERED True
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+# uvをインストール
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
-# Copy local code to the container image.
-ENV APP_HOME /app
-WORKDIR $APP_HOME
-COPY . ./
+# アプリケーションをコピー
+COPY . /app
 
-# Install production dependencies.
-RUN uv sync --frozen
+# 移動
+WORKDIR /app
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port","8080"]
+# 必要なパッケージをインストール
+RUN uv sync --locked
 
+# サーバーを起動
+CMD [".venv/bin/python", "main.py"]
+
+# ポートを公開
 EXPOSE 8080
