@@ -34,33 +34,6 @@ class FirestoreEncoder(json.JSONEncoder):
             
         # その他の型はデフォルト処理
         return super().default(obj)
-    
-def get_neighbor_news_json(region_id):#near_regions内のIDをリストで取得
-
-    if not firebase_admin._apps:
-        cred = credentials.Certificate(
-            r"Firebase_地域共生ID.json"
-        )
-        firebase_admin.initialize_app(cred)
-
-    # Firestoreクライアント初期化
-    db = firestore.client()
-
-    #サブコレクション参照
-    near_regions = db.collection("Regions").document(region_id).collection("near_regions")
-
-    #ドキュメント取得
-    docs = near_regions.stream()
-
-    #ドキュメント内のIDをリスト化
-    id_list = []
-
-    for doc in docs:
-        data = doc.to_dict()
-        if "ID" in data:
-            id_list.append(data["ID"])
-
-    return id_list   
 
 def get_all_news_json(region_id, page_size=100, last_doc=None):
     """
