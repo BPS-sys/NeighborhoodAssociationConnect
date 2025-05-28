@@ -1,43 +1,45 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import React, { useState } from 'react';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { FlatList, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { RootStackParamList } from '../app/board';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
-const posts = [
-  {
-    id: '1',
-    category: '防犯',
-    title: '〇〇小学校で不審者',
-    date: '2024/12/16',
-    content: '子どもに声をかける不審者が目撃されました。',
-  },
-  {
-    id: '2',
-    category: '防犯',
-    title: '空き巣被害多発',
-    date: '2024/12/13',
-    content: '最近この地域で空き巣の被害が増えています。',
-  },
-  {
-    id: '3',
-    category: 'イベント',
-    title: '町内清掃のお知らせ',
-    date: '2024/12/20',
-    content: '12月25日に町内清掃を行います。',
-  },
-  {
-    id: '4',
-    category: '防災',
-    title: '避難訓練のご案内',
-    date: '2024/12/25',
-    content: '来月1日に避難訓練を実施予定です。',
-  },
-];
+type Post = {
+  id: string;
+  category: string;
+  title: string;
+  date: string;
+  content: string;
+};
 
 export default function BulletHomeScreen({ navigation }: Props) {
   const [activeTab, setActiveTab] = useState("防犯");
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const res = await fetch('http://localhost:8080/api/v1/regions/ugyGiVvlg4fDN2afMnoe(RegionID)/news');
+        const data = await res.json();
+        const formatted: Post[] = data.map((item: any) => ({
+          id: item.id,
+          category: item.columns,
+          title: item.title,
+          date: item.time.split('T')[0],
+          content: item.text,
+        }));
+        setPosts(formatted);
+      } catch (error) {
+        console.error('データ取得エラー:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPosts();
+  }, []);
 
   const filteredPosts = posts.filter(p => p.category === activeTab);
 
@@ -56,26 +58,30 @@ export default function BulletHomeScreen({ navigation }: Props) {
         ))}
       </View>
 
-      {/* 投稿一覧 */}
-      <FlatList
-        data={filteredPosts}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() =>
-              navigation.navigate('Detail', {
-                title: item.title,
-                date: item.date,
-                content: item.content,
-              })
-            }
-          >
-            <Text style={styles.title}>{item.title}</Text>
-            <Text style={styles.date}>{item.date}</Text>
-          </TouchableOpacity>
-        )}
-      />
+      {/* ローディング表示 */}
+      {loading ? (
+        <ActivityIndicator size="large" color="#00BCD4" />
+      ) : (
+        <FlatList
+          data={filteredPosts}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() =>
+                navigation.navigate('Detail', {
+                  title: item.title,
+                  date: item.date,
+                  content: item.content,
+                })
+              }
+            >
+              <Text style={styles.title}>{item.title}</Text>
+              <Text style={styles.date}>{item.date}</Text>
+            </TouchableOpacity>
+          )}
+        />
+      )}
     </View>
   );
 }
