@@ -17,19 +17,25 @@ class AzureOpenAIChat:
             api_key=self.api_key,
             api_version=self.api_version,
         )
+        self.system_prompt = self._read_system_prompt()
 
-    def create_prompt(self, system_prompt: str, user_prompt: str):
+    def _read_system_prompt(self):
+        with open(r"app/db/system_prompt.txt", "r", encoding="utf-8") as f:
+            system_prompt = f.read()
+        return system_prompt
+
+    def create_prompt(self, user_prompt: str):
         return [
-            {"role": "system", "content": [{"type": "text", "text": system_prompt}]},
+            {"role": "system", "content": [{"type": "text", "text": self.system_prompt}]},
             {"role": "user", "content": [{"type": "text", "text": user_prompt}]}
         ]
 
     def chat(self, prompt: list, **kwargs):
         default_params = {
             "model": self.deployment,
-            "max_tokens": 800,
+            "max_tokens": 300,
             "temperature": 1.0,
-            "top_p": 0.7,
+            "top_p": 0.8,
             "frequency_penalty": 0,
             "presence_penalty": 0,
             "stream": False
@@ -43,11 +49,10 @@ class AzureOpenAIChat:
 # --- 使用例 ---
 
 if __name__ == "__main__":
-    model_context = "あなたはユーザーの質問に答える AI アシスタントです。"
     user_query = "これはテストメッセージです。"
 
     chat_client = AzureOpenAIChat()
-    prompt = chat_client.create_prompt(system_prompt=model_context, user_prompt=user_query)
+    prompt = chat_client.create_prompt(user_prompt=user_query)
     response = chat_client.chat(prompt)
 
     print("応答:", response.choices[0].message.content)
