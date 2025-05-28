@@ -2,17 +2,17 @@
 ---
 
 1. Clone
-  SSH:
-  ```bash
-  git clone git@github.com:BPS-sys/NeighborhoodAssociationConnect.git
-  ```
-  
-  or
-  
-  HTTPS:
-  ```bash
-  git clone https://github.com/BPS-sys/NeighborhoodAssociationConnect.git
-  ```
+    SSH:
+    ```bash
+    git clone git@github.com:BPS-sys/NeighborhoodAssociationConnect.git
+    ```
+    
+    or
+    
+    HTTPS:
+    ```bash
+    git clone https://github.com/BPS-sys/NeighborhoodAssociationConnect.git
+    ```
 
 2. Move
    ```bash
