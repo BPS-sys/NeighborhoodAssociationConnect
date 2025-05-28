@@ -23,3 +23,7 @@ class NewsOut(BaseModel):
     text: str
     time: datetime
     columns: str
+
+class ChatMessage(BaseModel):
+    UserMessage: str = Field(..., description="ユーザーメッセージ")
+    RegionID: str = Field(..., description="地域ID")
