@@ -3,3 +3,5 @@ uv.lock
 __pycache__
 .env
 app/tools/mcp-server-qdrant
+app/db/qdrant.txt
+app/db/system_prompt.txt

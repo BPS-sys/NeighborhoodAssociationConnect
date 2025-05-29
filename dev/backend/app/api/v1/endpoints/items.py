@@ -14,7 +14,7 @@ from api.schema import *
 dotenv.load_dotenv()
 
 router = APIRouter()
-mcp_client = MCP_Client.ChatAgent(model_context="あなたはユーザーの質問に答える AI アシスタントです。")
+mcp_client = MCP_Client.ChatAgent()
 
 def initialize_firebase():
     if not firebase_admin._apps:
