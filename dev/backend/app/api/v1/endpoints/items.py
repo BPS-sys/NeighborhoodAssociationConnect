@@ -2,7 +2,6 @@ from services import MCP_Client
 from fastapi import APIRouter
 import asyncio
 from fastapi import FastAPI, HTTPException, Body
-from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
 import firebase_admin
@@ -15,7 +14,7 @@ from api.schema import *
 dotenv.load_dotenv()
 
 router = APIRouter()
-mcp_client = MCP_Client.ChatAgent(model_context="あなたはユーザーの質問に答える AI アシスタントです。")
+mcp_client = MCP_Client.ChatAgent()
 
 def initialize_firebase():
     if not firebase_admin._apps:
@@ -44,11 +43,11 @@ def initialize_firebase():
 db = initialize_firebase()
 
 @router.post("/Chat")
-async def Chat(UserMessage:str, RegionID:str):
-    print(f"UserMessage: {UserMessage}")
-    print(type(UserMessage))
-    chat_response = await mcp_client.chat(query=UserMessage, region_id=RegionID)
-    return chat_response 
+async def Chat(chat_message: ChatMessage):
+    print(f"UserMessage: {chat_message.UserMessage}")
+    print(type(chat_message.UserMessage))
+    chat_response = await mcp_client.chat(query=chat_message.UserMessage, region_id=chat_message.RegionID)
+    return chat_response
 
 
 @router.get("/regions/view", summary="地域ID一覧の取得", response_model=List[str])

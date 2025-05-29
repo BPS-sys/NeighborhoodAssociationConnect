@@ -1,35 +1,87 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import React from 'react';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { FlatList, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { RootStackParamList } from '../app/board';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
-const posts = [
-  { id: '1', title: '〇〇小学校で不審者', date: '2024/12/16', content: '子どもに声をかける不審者が目撃されました。' },
-  { id: '2', title: '空き巣被害多発', date: '2024/12/13', content: '最近この地域で空き巣の被害が増えています。' },
-];
+type Post = {
+  id: string;
+  category: string;
+  title: string;
+  date: string;
+  content: string;
+};
 
 export default function BulletHomeScreen({ navigation }: Props) {
+  const [activeTab, setActiveTab] = useState("防犯");
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const res = await fetch('http://localhost:8080/api/v1/regions/ugyGiVvlg4fDN2afMnoe(RegionID)/news');
+        const data = await res.json();
+        const formatted: Post[] = data.map((item: any) => ({
+          id: item.id,
+          category: item.columns,
+          title: item.title,
+          date: item.time.split('T')[0],
+          content: item.text,
+        }));
+        setPosts(formatted);
+      } catch (error) {
+        console.error('データ取得エラー:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPosts();
+  }, []);
+
+  const filteredPosts = posts.filter(p => p.category === activeTab);
+
   return (
     <View style={styles.container}>
-      <FlatList
-        data={posts}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
+      {/* カテゴリ切り替えタブ */}
+      <View style={styles.tabContainer}>
+        {["防犯", "イベント", "防災"].map((tab) => (
           <TouchableOpacity
-            style={styles.card}
-            onPress={() => navigation.navigate('Detail', {
-              title: item.title,
-              date: item.date,
-              content: item.content,
-            })}
+            key={tab}
+            onPress={() => setActiveTab(tab)}
+            style={[styles.tab, activeTab === tab && styles.activeTab]}
           >
-            <Text style={styles.title}>{item.title}</Text>
-            <Text style={styles.date}>{item.date}</Text>
+            <Text style={styles.tabText}>{tab}</Text>
           </TouchableOpacity>
-        )}
-      />
+        ))}
+      </View>
+
+      {/* ローディング表示 */}
+      {loading ? (
+        <ActivityIndicator size="large" color="#00BCD4" />
+      ) : (
+        <FlatList
+          data={filteredPosts}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() =>
+                navigation.navigate('Detail', {
+                  title: item.title,
+                  date: item.date,
+                  content: item.content,
+                })
+              }
+            >
+              <Text style={styles.title}>{item.title}</Text>
+              <Text style={styles.date}>{item.date}</Text>
+            </TouchableOpacity>
+          )}
+        />
+      )}
     </View>
   );
 }
@@ -44,4 +96,24 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 16, fontWeight: 'bold' },
   date: { fontSize: 12, color: '#666' },
+  tabContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 10,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    backgroundColor: '#ccc',
+    alignItems: 'center',
+    borderRadius: 5,
+    marginHorizontal: 5,
+  },
+  activeTab: {
+    backgroundColor: '#00BCD4',
+  },
+  tabText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
 });

@@ -16,6 +16,8 @@ services:
       QDRANT__SERVICE__API_KEY: 2b74305e-caa1-4425-ad87-d5982b9b919d
   qdrant-mcp:
     build: ./backend/app/tools/mcp-server-qdrant
+    env_file:
+      - ./backend/.env
     ports:
       - '8000:8000'
     environment:

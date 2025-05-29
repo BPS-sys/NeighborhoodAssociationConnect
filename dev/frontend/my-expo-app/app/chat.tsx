@@ -11,7 +11,6 @@ import {
 // ✅ ScrollView を型として使う場合はこれでOK
 const scrollViewRef = useRef<ScrollView>(null);
 
-
 type Message = {
   sender: "user" | "ai";
   text: string;
@@ -22,38 +21,69 @@ export default function ChatScreen() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [input, setInput] = useState("");
-  
-  const handleSend = () => {
+
+  const handleSend = async () => {
     if (!input.trim()) return;
 
-  const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const now = new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
-  const newMessages = [...messages, { sender: "user", text: input ,timestamp: now,}];
+    const newMessages = [
+      ...messages,
+      { sender: "user", text: input, timestamp: now },
+    ];
     setMessages(newMessages);
-    setIsTyping(true); // ← AIが入力中フラグON
+    setIsTyping(true);
     setInput("");
 
-    // スクロール追従
     setTimeout(() => {
       scrollViewRef.current?.scrollToEnd({ animated: true });
     }, 100);
+    try {
+      const response = await fetch("http://localhost:8080/api/v1/Chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          UserMessage: input,
+          RegionID: "ugyGiVvlg4fDN2afMnoe",
+        }),
+      });
 
-    // 仮のAI応答SS
-    setTimeout(() => {
-      const reply = [...newMessages, {
-  sender: "ai",
-  text: "これはAIの返答です（仮）",
-  timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-}];
-setIsTyping(false); // ← AIが返答し終えたらOFF
-setMessages(reply);
+      const data = await response.json();
+      
 
+      const replyMessage = {
+        sender: "ai",
+        text: data || "AIの返答がありません",
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      };
 
-      // スクロール追従
+      setMessages((prev) => [...prev, replyMessage]);
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "ai",
+          text: "エラーが発生しました。",
+          timestamp: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        },
+      ]);
+    } finally {
+      setIsTyping(false);
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 100);
-    }, 500);
+    }
   };
 
   return (
@@ -61,68 +91,64 @@ setMessages(reply);
       <Text style={styles.title}>チャット画面</Text>
 
       <ScrollView
-  ref={scrollViewRef}
-  style={styles.chatArea}
-  contentContainerStyle={{ padding: 10 }}
->
-  {messages.map((msg, index) => (
-    <View
-      key={index}
-      style={{
-        flexDirection: msg.sender === "user" ? "row-reverse" : "row",
-        alignItems: "flex-end",
-        marginVertical: 4,
-      }}
-    >
-      {msg.sender === "ai" && (
-        <Text style={{ fontSize: 20, marginRight: 5 }}>🤖</Text>
-      )}
-
-      <View
-        style={[
-          styles.messageBubble,
-          msg.sender === "user" ? styles.user : styles.ai,
-        ]}
+        ref={scrollViewRef}
+        style={styles.chatArea}
+        contentContainerStyle={{ padding: 10 }}
       >
-        <Text style={{ color: msg.sender === "user" ? "#fff" : "#000" }}>
-          {msg.text}
-        </Text>
-        <Text style={{ fontSize: 10, color: "#999", marginTop: 2 }}>
-          {msg.timestamp}
-        </Text>
-      </View>
-    </View>
-  ))}
+        {messages.map((msg, index) => (
+          <View
+            key={index}
+            style={{
+              flexDirection: msg.sender === "user" ? "row-reverse" : "row",
+              alignItems: "flex-end",
+              marginVertical: 4,
+            }}
+          >
+            {msg.sender === "ai" && (
+              <Text style={{ fontSize: 20, marginRight: 5 }}>🤖</Text>
+            )}
 
-  {/* 👇 正しくここに表示！ */}
-  {isTyping && (
-    <Text style={{ marginLeft: 10, color: "#666", fontStyle: "italic" }}>
-      AIが入力中...
-    </Text>
-  )}
-</ScrollView>
+            <View
+              style={[
+                styles.messageBubble,
+                msg.sender === "user" ? styles.user : styles.ai,
+              ]}
+            >
+              <Text style={{ color: msg.sender === "user" ? "#fff" : "#000" }}>
+                {msg.text}
+              </Text>
+              <Text style={{ fontSize: 10, color: "#999", marginTop: 2 }}>
+                {msg.timestamp}
+              </Text>
+            </View>
+          </View>
+        ))}
 
+        {/* 👇 正しくここに表示！ */}
+        {isTyping && (
+          <Text style={{ marginLeft: 10, color: "#666", fontStyle: "italic" }}>
+            AIが入力中...
+          </Text>
+        )}
+      </ScrollView>
 
-{/* 🔽これをループの外に！ */}
-{isTyping && (
-  <Text>AIが入力中...</Text>
-)}
-
+      {/* 🔽これをループの外に！ */}
+      {isTyping && <Text>AIが入力中...</Text>}
 
       <View style={styles.inputArea}>
-  <TextInput
-    style={styles.input}
-    value={input}
-    onChangeText={setInput}
-    placeholder="メッセージを入力"
-    returnKeyType="send"            // スマホで送信ボタン表示
-    onSubmitEditing={handleSend}    // Enter押したら送信
-    blurOnSubmit={false}            // キーボード閉じない
-  />
-  <TouchableOpacity onPress={handleSend} style={styles.sendButton}>
-    <Text style={styles.sendIcon}>➤</Text>
-  </TouchableOpacity>
-</View>
+        <TextInput
+          style={styles.input}
+          value={input}
+          onChangeText={setInput}
+          placeholder="メッセージを入力"
+          returnKeyType="send" // スマホで送信ボタン表示
+          onSubmitEditing={handleSend} // Enter押したら送信
+          blurOnSubmit={false} // キーボード閉じない
+        />
+        <TouchableOpacity onPress={handleSend} style={styles.sendButton}>
+          <Text style={styles.sendIcon}>➤</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -171,14 +197,12 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   sendButton: {
-  padding: 10,
-  justifyContent: "center",
-  alignItems: "center",
-},
-sendIcon: {
-  fontSize: 22,
-  color: "#007AFF",
-},
-
-    
+    padding: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  sendIcon: {
+    fontSize: 22,
+    color: "#007AFF",
+  },
 });
