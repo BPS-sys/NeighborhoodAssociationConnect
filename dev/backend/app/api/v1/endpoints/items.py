@@ -10,6 +10,7 @@ import os
 import dotenv
 
 from api.schema import *
+import uuid
 
 dotenv.load_dotenv()
 
@@ -170,5 +171,20 @@ def get_user_messages(user_id: str):
                 "Senttime": d.get("SentTime", datetime.now())
             })
         return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.post("/users/post/messages", summary="ユーザーメッセージの送信")
+def post_user_message(user_id: str, user_message: UserMessageIn):
+    print(uuid.uuid4())
+    try:
+        messages_ref = db.collection("Users").document(user_id).collection("Messages")
+        message_data = {
+            "Title": user_message.title,
+            "Text": user_message.text,
+            "SentTime": datetime.now()
+        }
+        new_doc = messages_ref.add(message_data)[1]
+        return {"message": "メッセージを送信しました", "id": new_doc.id}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
