@@ -154,3 +154,21 @@ def list_news(region_id: str):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+@router.get("/users/messages", summary="ユーザーメッセージの取得")
+def get_user_messages(user_id: str):
+    try:
+        messages_ref = db.collection("Users").document(user_id).collection("Messages")
+        docs = messages_ref.stream()
+        result = []
+        for doc in docs:
+            d = doc.to_dict()
+            result.append({
+                "id": doc.id,
+                "Title": d.get("Title", ""),
+                "Text": d.get("Text", ""),
+                "Senttime": d.get("SentTime", datetime.now())
+            })
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
