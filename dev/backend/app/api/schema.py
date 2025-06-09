@@ -27,3 +27,7 @@ class NewsOut(BaseModel):
 class ChatMessage(BaseModel):
     UserMessage: str = Field(..., description="ユーザーメッセージ")
     RegionID: str = Field(..., description="地域ID")
+
+class UserMessageIn(BaseModel):
+    title: str = Field(..., description="タイトル")
+    text: str = Field(..., description="メッセージ本文")
