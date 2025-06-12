@@ -14,8 +14,8 @@ services:
       - 6333:6333
     environment:
       QDRANT__SERVICE__API_KEY: 2b74305e-caa1-4425-ad87-d5982b9b919d
-  qdrant-mcp:
-    build: ./backend/app/tools/mcp-server-qdrant
+  mcp-server:
+    build: ./backend/app/tools/mcp_server
     env_file:
       - ./backend/.env
     ports:

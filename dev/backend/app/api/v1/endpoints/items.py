@@ -1,7 +1,7 @@
 from services import MCP_Client
 from fastapi import APIRouter
 import asyncio
-from fastapi import FastAPI, HTTPException, Body
+from fastapi import FastAPI, HTTPException, Body, Depends
 from typing import List, Optional
 from datetime import datetime
 import firebase_admin
@@ -44,7 +44,7 @@ def initialize_firebase():
 db = initialize_firebase()
 
 @router.post("/Chat")
-async def Chat(chat_message: ChatMessage):
+async def Chat(chat_message: ChatMessage=Depends()):
     print(f"UserMessage: {chat_message.UserMessage}")
     print(type(chat_message.UserMessage))
     chat_response = await mcp_client.chat(query=chat_message.UserMessage, region_id=chat_message.RegionID)

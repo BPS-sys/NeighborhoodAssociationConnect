@@ -2,6 +2,6 @@ Firebase_地域共生ID.json
 uv.lock
 __pycache__
 .env
-app/tools/mcp-server-qdrant
-app/db/qdrant.txt
+app/db/region_db
 app/db/system_prompt.txt
+app/tools/mcp_server/.venv

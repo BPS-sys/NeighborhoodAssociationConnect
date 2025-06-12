@@ -44,6 +44,23 @@ class AzureOpenAIChat:
 
         response = self.client.chat.completions.create(messages=prompt, **default_params)
         return response
+    
+class AzureOpenAIEmbedding:
+    def __init__(self):
+        self.api_key = os.getenv("EMBEDDING_API_KEY")
+        self.api_version = os.getenv("EMBEDDING_API_VERSION")
+        self.endpoint = os.getenv("EMBEDDING_ENDPOINT_URL")
+        self.client = AzureOpenAI(
+            api_key=self.api_key,
+            api_version=self.api_version,
+            azure_endpoint=self.endpoint
+        )
+    def get_embedding(self, text: str) -> list[float]:
+        response = self.client.embeddings.create(
+            input=text,
+            model=os.getenv("EMBEDDING_MODEL")
+        )
+        return response.data[0].embedding
 
 
 # --- 使用例 ---
@@ -54,7 +71,10 @@ if __name__ == "__main__":
     chat_client = AzureOpenAIChat()
     prompt = chat_client.create_prompt(user_prompt=user_query)
     response = chat_client.chat(prompt)
+    em_client = AzureOpenAIEmbedding()
+    em = em_client.get_embedding(user_query)
 
     print("応答:", response.choices[0].message.content)
     print(f"完了トークン: {response.usage.completion_tokens}")
     print(f"プロンプトトークン: {response.usage.prompt_tokens}")
+    print("Embedding:", len(em))
