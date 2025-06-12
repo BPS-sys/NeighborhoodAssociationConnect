@@ -18,4 +18,4 @@ CMD [".venv/bin/python", "main.py", "--transport", "sse"]
 
 
 # ポートを公開
-EXPOSE 8080
+EXPOSE 8001

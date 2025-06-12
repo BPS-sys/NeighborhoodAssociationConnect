@@ -10,7 +10,7 @@ def main():
     )
     args = parser.parse_args()
 
-    from mcp_server import mcp
+    from server import mcp
     mcp.run(transport=args.transport)
 
 if __name__ == "__main__":

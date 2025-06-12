@@ -9,13 +9,12 @@ import glob
 
 class ChatAgent:
     def __init__(self):
-        self.mcp_endpoint = "http://mcp-server:8000/sse"
+        self.mcp_endpoint = "http://mcp-server-qdrant:8000/sse"
         self.chat_client = model.AzureOpenAIChat()
         self.embedding_client = model.AzureOpenAIEmbedding()
         self.FIRST = True  # 初回フラグ
         self.temp_dict = {}
         self._temp_read_qdrant()  # 一時的にQdrantの情報を読み込む
-
 
     def _temp_read_qdrant(self):
         for file_name in glob.glob(r"app/db/region_db/*.txt"):
@@ -31,7 +30,6 @@ class ChatAgent:
         async with Client(transport=transport) as client:
             tools = await client.list_tools()
             print(tools)
-            query_vector = self.embedding_client.get_embedding(query)
             # プロトタイプ用
             if self.FIRST:
                 self.FIRST = False
@@ -50,6 +48,7 @@ class ChatAgent:
                                 "payload_id": id
                             })
             # Step 1: ベクトル検索
+            query_vector = self.embedding_client.get_embedding(query)
             result = await client.call_tool("search_collection", {
                 "collection_name": "region",
                 "query_vector": query_vector,

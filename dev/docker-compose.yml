@@ -14,12 +14,16 @@ services:
       - 6333:6333
     environment:
       QDRANT__SERVICE__API_KEY: 2b74305e-caa1-4425-ad87-d5982b9b919d
-  mcp-server:
-    build: ./backend/app/tools/mcp_server
+  mcp-server-qdrant:
+    build: ./backend/app/tools/mcp_server/mcp_server_qdrant
     env_file:
       - ./backend/.env
     ports:
       - '8000:8000'
     environment:
       - RUST_LOG=info
-      
+  
+  mcp-server-web-search:
+    build: ./backend/app/tools/mcp_server/mcp_server_web_search
+    ports:
+      - '8001:8001'

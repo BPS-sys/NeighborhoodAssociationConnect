@@ -1,5 +1,5 @@
 from mcp.server.fastmcp import FastMCP
-from mcp_server_qdrant.QdrantManager import QdrantManager
+from QdrantManager import QdrantManager
 
 mcp = FastMCP("MCP_BaseServer",
               host="0.0.0.0",

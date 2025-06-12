@@ -4,4 +4,5 @@ __pycache__
 .env
 app/db/region_db
 app/db/system_prompt.txt
-app/tools/mcp_server/.venv
+app/tools/mcp_server/mcp_server_qdrant/.venv
+app/tools/mcp_server/mcp_server_web_search/.venv
