@@ -24,11 +24,16 @@ class AzureOpenAIChat:
             system_prompt = f.read()
         return system_prompt
 
-    def create_prompt(self, user_prompt: str):
-        return [
-            {"role": "system", "content": [{"type": "text", "text": self.system_prompt}]},
-            {"role": "user", "content": [{"type": "text", "text": user_prompt}]}
-        ]
+    def create_prompt(self, user_prompt: str, use_system_prompt=True):
+        if use_system_prompt:
+            return [
+                {"role": "system", "content": [{"type": "text", "text": self.system_prompt}]},
+                {"role": "user", "content": [{"type": "text", "text": user_prompt}]}
+            ]
+        else:
+            return [
+                {"role": "user", "content": [{"type": "text", "text": user_prompt}]}
+            ]
 
     def chat(self, prompt: list, **kwargs):
         default_params = {

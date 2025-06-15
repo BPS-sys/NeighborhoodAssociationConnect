@@ -8,14 +8,23 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 import os
 import dotenv
+from contextlib import asynccontextmanager
 
 from api.schema import *
 import uuid
 
 dotenv.load_dotenv()
 
-router = APIRouter()
 mcp_client = MCP_Client.ChatAgent()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("startup event")
+    await mcp_client.get_tools_from_mcp_server_qdrant()
+    yield
+    print("shutdown event")
+
+router = APIRouter(lifespan=lifespan)
 
 def initialize_firebase():
     if not firebase_admin._apps:

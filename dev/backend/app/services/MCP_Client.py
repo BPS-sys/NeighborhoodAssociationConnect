@@ -4,49 +4,56 @@ from fastmcp.client import Client
 from models import model  # AzureOpenAIChat を含む独自モジュール
 import json
 
-import glob
+from services.prototype import Prototype
 
 
 class ChatAgent:
     def __init__(self):
-        self.mcp_endpoint = "http://mcp-server-qdrant:8000/sse"
+        self.mcp_endpoints = ["http://mcp-server-qdrant:8000/sse",
+                              "http://mcp-server-web-search:8001/sse"]
         self.chat_client = model.AzureOpenAIChat()
         self.embedding_client = model.AzureOpenAIEmbedding()
-        self.FIRST = True  # 初回フラグ
         self.temp_dict = {}
-        self._temp_read_qdrant()  # 一時的にQdrantの情報を読み込む
+        self.endpoint_tool_map = {}
+        self.tool_descriptions = {}
+        Prototype().setup()
+        
+    async def get_tools_from_mcp_server_qdrant(self):
+        for endpoint in self.mcp_endpoints:
+            transport = SSETransport(endpoint)
+            async with Client(transport=transport) as client:
+                tools = await client.list_tools()
+                self.endpoint_tool_map[endpoint] = tools
+                for tool in tools:
+                    self.tool_descriptions[tool.name] = tool.description
+        print(self.tool_descriptions)
 
-    def _temp_read_qdrant(self):
-        for file_name in glob.glob(r"app/db/region_db/*.txt"):
-            print(file_name)
-            with open(file_name, "r", encoding="utf-8") as f:
-                qdrant_text = str(f.read())
-                region_id, text = qdrant_text.split("\n", maxsplit=1)
-                self.temp_dict[region_id] = text
-
-    async def chat(self, query: str, region_id: str) -> str:
-        # MCPクライアントの初期化
-        transport = SSETransport(self.mcp_endpoint)
+    def get_endpoint_by_tool_name(self, tool_name: str) -> str | None:
+        for endpoint, tools in self.endpoint_tool_map.items():
+            for tool in tools:
+                if tool.name == tool_name:
+                    return endpoint
+        return None
+    
+    async def mcp_server_qdrant(self, tool_name: str):
+        endpoint = "http://mcp-server-qdrant:8000/sse"
+        transport = SSETransport(endpoint)
         async with Client(transport=transport) as client:
-            tools = await client.list_tools()
-            print(tools)
-            # プロトタイプ用
-            if self.FIRST:
-                self.FIRST = False
-                region_exist = await client.call_tool("setup_collection", {
-                        "collection_name": "region"
-                        })
-                for id, text in self.temp_dict.items():
-                    if region_exist[-1].text == "false":
-                        texts = text.split("\n\n")
-                        for point_text in texts:
-                            em = self.embedding_client.get_embedding(point_text)
-                            await client.call_tool("write_to_collection", {
-                                "document": point_text,
-                                "collection_name": "region",
-                                "embedding": em,
-                                "payload_id": id
-                            })
+            pass
+
+    
+    async def chat(self, query: str, region_id: str) -> str:
+        transport = SSETransport(self.mcp_endpoints[1])
+        async with Client(transport=transport) as client:
+            result =  await client.call_tool("fetch_tool", {
+                "args":{
+                    "query": query
+                }
+            })
+        return result
+        # MCPクライアントの初期化
+        transport = SSETransport(self.mcp_endpoints[0])
+        async with Client(transport=transport) as client:
             # Step 1: ベクトル検索
             query_vector = self.embedding_client.get_embedding(query)
             result = await client.call_tool("search_collection", {

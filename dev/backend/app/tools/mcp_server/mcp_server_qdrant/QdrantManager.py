@@ -10,6 +10,9 @@ dotenv.load_dotenv()
 
 
 class QdrantManager:
+    """
+    Qdrantを操作することができます。
+    """
     def __init__(self, host: str = "localhost", port: int = 6333, ssl: bool = False):
         self.client = QdrantClient(url=f"{'https' if ssl else 'http'}://{host}:{port}", api_key=os.getenv("QDRANT_API_KEY"))
 

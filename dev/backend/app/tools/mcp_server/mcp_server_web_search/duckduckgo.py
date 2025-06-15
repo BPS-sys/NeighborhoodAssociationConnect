@@ -1,52 +1,39 @@
-import requests
-from bs4 import BeautifulSoup
 from duckduckgo_search import DDGS  # pip install duckduckgo-search
 
 
 class MCPWebSearcher:
-    def __init__(self, num_results: int = 3):
+    def __init__(self, num_results: int = 5):
         self.num_results = num_results
 
     def search_web(self, query: str):
-        """DuckDuckGoでWeb検索して、上位のURLを取得"""
+        """DuckDuckGoでWeb検索し、スニペット付きのURLを取得"""
         with DDGS() as ddgs:
             results = ddgs.text(query, max_results=self.num_results)
-            urls = [result["href"] for result in results]
-        return urls
+            return [(r["href"], r.get("body", "")) for r in results if "href" in r]
 
-    def fetch_content(self, url):
-        response = requests.get(url)
-        response.encoding = response.apparent_encoding
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # 例：mainコンテンツ内のテキストだけ取る
-        main_content = soup.find('div', class_='article')  # クラス名はサイトにより異なります
-        if main_content:
-            return main_content.get_text(strip=True)
-        else:
-            return soup.get_text(strip=True)
-
-    def summarize(self, text: str, query: str):
-        """簡易的な要約（キーワードベースで抽出）"""
-        lines = text.split("\n")
+    def summarize_snippets(self, snippets: list, query: str):
+        """スニペットだけを使って簡易的に要約"""
+        combined_text = "\n".join(snippets)
+        lines = combined_text.splitlines()
+        # キーワードを含む行だけ抽出（最大5行）
         important = [line for line in lines if any(word in line for word in query.split())]
-        return "\n".join(important[:5]) or "関連情報が見つかりませんでした。"
+        summary = "\n".join(important[:5])
+        return summary or "関連情報が見つかりませんでした。"
 
     def answer(self, query: str):
-        """検索＋要約して回答を返す"""
-        urls = self.search_web(query)
-        if not urls:
+        """スニペットベースの要約と参考URL一覧を返す"""
+        results = self.search_web(query)
+        if not results:
             return "検索結果が見つかりませんでした。"
 
-        for url in urls:
-            content = self.fetch_content(url)
-            if content:
-                summary = self.summarize(content, query)
-                return f"【参考URL】{url}\n\n{summary}"
+        snippets = [snippet for _, snippet in results if snippet]
+        summary = self.summarize_snippets(snippets, query)
+        references = "\n".join(f"- {url}" for url, _ in results)
 
-        return "有用な情報が取得できませんでした。"
+        return f"{summary}\n\n【参考URL】\n{references}"
+
 
 if __name__ == "__main__":
     searcher = MCPWebSearcher()
-    response = searcher.answer("大阪滝川地域活動協議会 町内会 ゴミの日")
+    response = searcher.answer("大阪滝川地域活動 祭り 2025")
     print(response)
