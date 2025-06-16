@@ -16,6 +16,9 @@ import {
 import { useRouter, Stack } from "expo-router";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
+const { width, height } = Dimensions.get("window");
+const MODAL_MAX_HEIGHT = height * 0.6;
+
 export default function HomeScreen() {
   const router = useRouter();
 
@@ -23,7 +26,6 @@ export default function HomeScreen() {
   const userName = "山田 太郎";
   const staffId = "館員番号：A12345";
 
-  // 連絡事項のサンプル配列（5件、一週間以内の日付）
   const noticesData = [
     {
       id: "1",
@@ -90,39 +92,28 @@ export default function HomeScreen() {
       isEmergency: false,
     },
   ];
-
-  // 日付が近い順（降順）にソート
-  const notices = useMemo(() => {
-    return [...noticesData].sort((a, b) => {
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
-    });
-  }, []);
-
-  // どのnoticeをすでに見たかを管理するセット
+  const notices = useMemo(
+    () =>
+      [...noticesData].sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      ),
+    []
+  );
   const [seenNotices, setSeenNotices] = useState<string[]>([]);
-
-  // 通知モーダルのステート
   const [noticeModalVisible, setNoticeModalVisible] = useState(false);
   const [selectedNotice, setSelectedNotice] = useState<typeof notices[0] | null>(
     null
   );
 
-  // モーダルを開くときseenNoticesに追加し枠・背景を薄い黒に変更
   const openNoticeModal = (notice: typeof notices[0]) => {
     setSelectedNotice(notice);
-    setNoticeModalVisible(true);
     setSeenNotices((prev) =>
       prev.includes(notice.id) ? prev : [...prev, notice.id]
     );
+    setNoticeModalVisible(true);
   };
+  const closeNoticeModal = () => setNoticeModalVisible(false);
 
-  // モーダルを閉じる
-  const closeNoticeModal = () => {
-    setNoticeModalVisible(false);
-    setSelectedNotice(null);
-  };
-
-  // 直近一週間のイベント（ダミー５件）に detail を追加
   const upcomingEvents = [
     {
       id: "e1",
@@ -185,37 +176,28 @@ export default function HomeScreen() {
         "参加無料。動きやすい服装でお越しください。",
     },
   ];
-
-  // イベントモーダルのステート
   const [eventModalVisible, setEventModalVisible] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<typeof upcomingEvents[0] | null>(
     null
   );
 
-  // イベントモーダルを開く
-  const openEventModal = (event: typeof upcomingEvents[0]) => {
-    setSelectedEvent(event);
+  const openEventModal = (evt: typeof upcomingEvents[0]) => {
+    setSelectedEvent(evt);
     setEventModalVisible(true);
   };
-
-  // イベントモーダルを閉じる
-  const closeEventModal = () => {
-    setEventModalVisible(false);
-    setSelectedEvent(null);
-  };
+  const closeEventModal = () => setEventModalVisible(false);
 
   return (
     <View style={styles.root}>
-      {/* 右上アカウントアイコン */}
+      {/* アカウントアイコン */}
       <TouchableOpacity style={styles.accountIcon}>
         <Ionicons name="person-circle-outline" size={32} color="#333" />
       </TouchableOpacity>
 
       <Stack.Screen options={{ title: "ホーム" }} />
 
-      {/* 全体をスクロール可能に */}
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* --- イラストバナー --- */}
+        {/* バナー */}
         <View style={styles.bannerContainer}>
           <Image
             source={{
@@ -226,17 +208,16 @@ export default function HomeScreen() {
           />
         </View>
 
-        {/* ① 画面上部：ユーザー情報 */}
+        {/* ユーザー情報 */}
         <View style={[styles.section, styles.userInfoContainer]}>
           <Ionicons name="home-outline" size={24} color="#007AFF" />
           <Text style={styles.userName}>{userName} さん</Text>
           <Text style={styles.staffId}>{staffId}</Text>
         </View>
 
-        {/* ② 中部：連絡事項 */}
+        {/* 連絡事項 */}
         <View style={[styles.section, styles.noticeContainer]}>
           <Text style={styles.noticeHeading}>連絡事項</Text>
-
           <FlatList
             data={notices}
             keyExtractor={(item) => item.id}
@@ -283,32 +264,7 @@ export default function HomeScreen() {
           />
         </View>
 
-        {/* 通知モーダル：連絡事項の詳細 */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={noticeModalVisible}
-          onRequestClose={closeNoticeModal}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>
-                {selectedNotice?.isEmergency && "重要！！ "}
-                {selectedNotice?.title} (
-                {selectedNotice?.date.replace(/-/g, "/")})
-              </Text>
-              <Text style={styles.modalBody}>{selectedNotice?.detail}</Text>
-              <Pressable
-                style={styles.modalButton}
-                onPress={closeNoticeModal}
-              >
-                <Text style={styles.modalButtonText}>閉じる</Text>
-              </Pressable>
-            </View>
-          </View>
-        </Modal>
-
-        {/* ③ 下部：直近一週間のイベント一覧（大きめカード表示） */}
+        {/* 今週イベント */}
         <View style={[styles.section, styles.eventsContainer]}>
           <Text style={styles.sectionTitle}>今週イベント</Text>
           <FlatList
@@ -334,20 +290,50 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
-      {/* イベントモーダル：詳細表示 & スケジュール画面ボタン */}
+      {/* 連絡事項モーダル */}
       <Modal
         animationType="slide"
-        transparent={true}
+        transparent
+        visible={noticeModalVisible}
+        onRequestClose={closeNoticeModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <ScrollView
+              style={styles.modalScrollView}
+              contentContainerStyle={styles.modalScrollContent}
+            >
+              <Text style={styles.modalTitle}>
+                {selectedNotice?.isEmergency && "重要！！ "}
+                {selectedNotice?.title}（{selectedNotice?.date.replace(/-/g,"/")}）
+              </Text>
+              <Text style={styles.modalBody}>{selectedNotice?.detail}</Text>
+            </ScrollView>
+            <Pressable style={styles.modalButton} onPress={closeNoticeModal}>
+              <Text style={styles.modalButtonText}>閉じる</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      {/* イベントモーダル */}
+      <Modal
+        animationType="slide"
+        transparent
         visible={eventModalVisible}
         onRequestClose={closeEventModal}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              {selectedEvent?.title} ({selectedEvent?.date})
-            </Text>
-            <Text style={styles.modalBody}>{selectedEvent?.detail}</Text>
-
+            <ScrollView
+              style={styles.modalScrollView}
+              contentContainerStyle={styles.modalScrollContent}
+            >
+              <Text style={styles.modalTitle}>
+                {selectedEvent?.title}（{selectedEvent?.date}）
+              </Text>
+              <Text style={styles.modalBody}>{selectedEvent?.detail}</Text>
+            </ScrollView>
             <Pressable
               style={[styles.modalButton, styles.scheduleButton]}
               onPress={() => {
@@ -357,11 +343,7 @@ export default function HomeScreen() {
             >
               <Text style={styles.modalButtonText}>スケジュール画面へ</Text>
             </Pressable>
-
-            <Pressable
-              style={[styles.modalButton, styles.closeButton]}
-              onPress={closeEventModal}
-            >
+            <Pressable style={styles.modalButton} onPress={closeEventModal}>
               <Text style={styles.modalButtonText}>閉じる</Text>
             </Pressable>
           </View>
@@ -371,24 +353,10 @@ export default function HomeScreen() {
   );
 }
 
-const { width } = Dimensions.get("window");
-
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: "#f5f5f5",
-  },
-  scrollContent: {
-    paddingBottom: 24,
-  },
-  section: {
-    padding: 16,
-    backgroundColor: "#ffffff",
-    borderBottomColor: "#ddd",
-    borderBottomWidth: 1,
-  },
+  root: { flex: 1, backgroundColor: "#f5f5f5" },
+  scrollContent: { paddingBottom: 24 },
 
-  // --- イラストバナー ---
   bannerContainer: {
     alignItems: "center",
     marginVertical: 12,
@@ -399,26 +367,17 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
 
-  // ① ユーザー情報
-  userInfoContainer: {
-    alignItems: "center",
+  section: {
+    padding: 16,
+    backgroundColor: "#ffffff",
+    borderBottomColor: "#ddd",
+    borderBottomWidth: 1,
   },
-  userName: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#333",
-    marginTop: 4,
-  },
-  staffId: {
-    fontSize: 14,
-    color: "#777",
-    marginTop: 2,
-  },
+  userInfoContainer: { alignItems: "center" },
+  userName: { fontSize: 22, fontWeight: "bold", color: "#333", marginTop: 4 },
+  staffId: { fontSize: 14, color: "#777", marginTop: 2 },
 
-  // ② 連絡事項
-  noticeContainer: {
-    marginTop: 8,
-  },
+  noticeContainer: { marginTop: 8 },
   noticeHeading: {
     fontSize: 18,
     fontWeight: "bold",
@@ -426,9 +385,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     textAlign: "center",
   },
-  noticeList: {
-    paddingBottom: 8,
-  },
+  noticeList: { paddingBottom: 8 },
   noticeItem: {
     marginBottom: 12,
     backgroundColor: "#E6FFE6",
@@ -442,13 +399,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
-  noticeItemSeen: {
-    backgroundColor: "#e0e0e0",  // 背景を薄い黒系に
-  },
-  noticeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
+  noticeItemSeen: { backgroundColor: "#e0e0e0" },
+  noticeRow: { flexDirection: "row", alignItems: "center" },
   badgeCircle: {
     width: 24,
     height: 24,
@@ -456,7 +408,6 @@ const styles = StyleSheet.create({
     marginRight: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "transparent",
   },
   badgeCircleEmergency: {
     backgroundColor: "#ffe5e5",
@@ -470,74 +421,20 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: -4,
   },
-  badgeTextHidden: {
-    opacity: 0,
-  },
-  noticeTextContainer: {
-    flex: 1,
-  },
-  noticeTitle: {
-    fontSize: 16,
-    color: "#333",
-    fontWeight: "bold",
-  },
-  noticeDate: {
-    fontSize: 12,
-    color: "#555",
-    marginTop: 4,
-  },
+  badgeTextHidden: { opacity: 0 },
+  noticeTextContainer: { flex: 1 },
+  noticeTitle: { fontSize: 16, color: "#333", fontWeight: "bold" },
+  noticeDate: { fontSize: 12, color: "#555", marginTop: 4 },
 
-  // 通知モーダルスタイル
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContent: {
-    width: width * 0.85,
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 20,
-    elevation: 5,
-  },
-  modalTitle: {
+  eventsContainer: { marginTop: 8 },
+  sectionTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 12,
+    color: "#222",
+    marginBottom: 8,
     textAlign: "center",
   },
-  modalBody: {
-    fontSize: 14,
-    color: "#333",
-    lineHeight: 20,
-    marginBottom: 20,
-  },
-  modalButton: {
-    backgroundColor: "#007AFF",
-    borderRadius: 6,
-    paddingVertical: 10,
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  modalButtonText: {
-    color: "#fff",
-    fontSize: 16,
-  },
-  scheduleButton: {
-    backgroundColor: "#28A745",
-  },
-  closeButton: {
-    backgroundColor: "#999",
-  },
-
-  // ③ 直近一週間のイベント一覧（おしゃれなカード表示）
-  eventsContainer: {
-    marginTop: 8,
-  },
-  eventList: {
-    paddingBottom: 16,
-  },
+  eventList: { paddingBottom: 16 },
   eventCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -551,24 +448,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
-  eventIcon: {
-    marginRight: 12,
-  },
-  eventTextContainer: {
-    flex: 1,
-  },
-  eventTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#1565C0",
-    marginBottom: 4,
-  },
-  eventDate: {
-    fontSize: 14,
-    color: "#333",
-  },
+  eventIcon: { marginRight: 12 },
+  eventTextContainer: { flex: 1 },
+  eventTitle: { fontSize: 16, fontWeight: "bold", color: "#1565C0", marginBottom: 4 },
+  eventDate: { fontSize: 14, color: "#333" },
 
-  // 右上アカウントアイコン
   accountIcon: {
     position: "absolute",
     top: Platform.OS === "ios" ? 50 : 20,
@@ -576,12 +460,34 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
 
-  // 共通
-  sectionTitle: {
+  // モーダル共通
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    width: "90%",
+    maxHeight: MODAL_MAX_HEIGHT,
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+  modalScrollView: { flexGrow: 0 },
+  modalScrollContent: { padding: 20 },
+  modalTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#222",
-    marginBottom: 8,
+    marginBottom: 12,
     textAlign: "center",
   },
+  modalBody: { fontSize: 14, lineHeight: 20 },
+  modalButton: {
+    backgroundColor: "#007AFF",
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  modalButtonText: { color: "#fff", fontSize: 16 },
+  scheduleButton: { backgroundColor: "#28A745" },
 });
