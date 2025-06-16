@@ -10,7 +10,7 @@ qdrant_manager = QdrantManager(host="qdrant", port=6333, ssl=False)
 
 @mcp.tool()
 def search_collection(args: SearchCollectionInput):
-    """ユーザーが求めている情報をデータベースから探すことができます。"""
+    """町内会の情報が入っているデータベースにベクトル検索を行えます。"""
     results = qdrant_manager.search_collection(
         collection_name=args.collection_name,
         query_vector=args.query_vector,
@@ -19,7 +19,7 @@ def search_collection(args: SearchCollectionInput):
     )
     return results
 
-@mcp.tool()
+
 def write_to_collection(args: WriteToCollectionInput):
     """ユーザーとの会話を保存できます。"""
     success = qdrant_manager.write_to_collection(

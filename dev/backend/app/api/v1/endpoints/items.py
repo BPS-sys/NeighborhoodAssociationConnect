@@ -53,10 +53,8 @@ def initialize_firebase():
 db = initialize_firebase()
 
 @router.post("/Chat")
-async def Chat(chat_message: ChatMessage=Depends()):
-    print(f"UserMessage: {chat_message.UserMessage}")
-    print(type(chat_message.UserMessage))
-    chat_response = await mcp_client.chat(query=chat_message.UserMessage, region_id=chat_message.RegionID)
+async def Chat(chat_message: ChatMessage):
+    chat_response = await mcp_client.chat(query=chat_message.UserMessage, region_id=chat_message.RegionID, region_name=chat_message.RegionName)
     return chat_response
 
 
