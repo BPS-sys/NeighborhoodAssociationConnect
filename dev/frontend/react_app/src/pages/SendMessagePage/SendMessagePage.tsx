@@ -8,8 +8,9 @@ const SendMessagePage: React.FC = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [newsList, setNewsList] = useState<any[]>([]);
   const [userMessages, setUserMessages] = useState<any[]>([]);
+  const [userIds, setUserIds] = useState<string[]>([]);  // 追加：ユーザーID一覧用state
 
-  const regionId = "ugyGiVvlg4fDN2afMnoe"; // ← RegionID
+  const regionId = "ugyGiVvlg4fDN2afMnoe(RegionID)"; // ← RegionID
   const userId = "LI9dnLrsMP4gjjumF0me";  // ← 固定テスト用ユーザーID
 
   const handleSend = async () => {
@@ -88,6 +89,27 @@ const SendMessagePage: React.FC = () => {
     }
   };
 
+  // 新規追加: FirestoreのUsersドキュメントID一覧取得
+  const fetchUserIds = async () => {
+    try {
+      const res = await fetch("http://localhost:8080/api/v1/users/get/id", {
+        method: "GET",
+      });
+
+      if (!res.ok) {
+        const error = await res.text();
+        alert("ユーザーID一覧取得に失敗しました: " + error);
+        return;
+      }
+
+      const data = await res.json();
+      setUserIds(data.user_ids || []);
+    } catch (err) {
+      alert("通信エラーが発生しました");
+      console.error(err);
+    }
+  };
+
   const styles: { [key: string]: CSSProperties } = {
     app: { display: 'flex' },
     sidebar: { width: '200px', backgroundColor: '#222', padding: '20px', color: '#fff' },
@@ -102,6 +124,7 @@ const SendMessagePage: React.FC = () => {
     input: { width: '100%', padding: '8px' },
     textarea: { width: '100%', padding: '8px' },
     sendButton: { backgroundColor: '#007bff', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '5px', cursor: 'pointer', marginTop: '10px' },
+    userIdList: { marginTop: '20px' },
   };
 
   return (
@@ -185,6 +208,20 @@ const SendMessagePage: React.FC = () => {
               <li key={msg.id}>
                 <strong>{msg.Title}</strong> - {msg.Text} （{new Date(msg.Senttime).toLocaleString()}）
               </li>
+            ))}
+          </ul>
+
+          <hr />
+
+          {/* 新規追加部分 */}
+          <button onClick={fetchUserIds} style={styles.sendButton}>
+            ユーザーID一覧を取得
+          </button>
+
+          <ul style={styles.userIdList}>
+            {userIds.length === 0 && <li>ユーザーIDがありません</li>}
+            {userIds.map((id) => (
+              <li key={id}>{id}</li>
             ))}
           </ul>
         </div>
