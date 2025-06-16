@@ -1,21 +1,30 @@
 from services import MCP_Client
 from fastapi import APIRouter
 import asyncio
-from fastapi import FastAPI, HTTPException, Body
+from fastapi import FastAPI, HTTPException, Body, Depends
 from typing import List, Optional
 from datetime import datetime
 import firebase_admin
 from firebase_admin import credentials, firestore
 import os
 import dotenv
+from contextlib import asynccontextmanager
 
 from api.schema import *
 import uuid
 
 dotenv.load_dotenv()
 
-router = APIRouter()
 mcp_client = MCP_Client.ChatAgent()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("startup event")
+    await mcp_client.get_tools_from_mcp_server_qdrant()
+    yield
+    print("shutdown event")
+
+router = APIRouter(lifespan=lifespan)
 
 def initialize_firebase():
     if not firebase_admin._apps:
@@ -45,9 +54,7 @@ db = initialize_firebase()
 
 @router.post("/Chat")
 async def Chat(chat_message: ChatMessage):
-    print(f"UserMessage: {chat_message.UserMessage}")
-    print(type(chat_message.UserMessage))
-    chat_response = await mcp_client.chat(query=chat_message.UserMessage, region_id=chat_message.RegionID)
+    chat_response = await mcp_client.chat(query=chat_message.UserMessage, region_id=chat_message.RegionID, region_name=chat_message.RegionName)
     return chat_response
 
 
