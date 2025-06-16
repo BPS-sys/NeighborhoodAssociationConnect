@@ -1,4 +1,4 @@
-import BulletinBoard from '@/screens/BulletinBoard';
+import BulletinBoard from '@/screens/BoardScreen.tsx';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 const Tab = createBottomTabNavigator();
