@@ -188,3 +188,13 @@ def post_user_message(user_id: str, user_message: UserMessageIn):
         return {"message": "メッセージを送信しました", "id": new_doc.id}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+@router.get("/users/get/id", summary="ユーザーID一覧の取得")
+def get_user_ids():
+    try:
+        users_ref = db.collection("Users")
+        docs = users_ref.stream()
+        user_ids = [doc.id for doc in docs]
+        return {"user_ids": user_ids}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
