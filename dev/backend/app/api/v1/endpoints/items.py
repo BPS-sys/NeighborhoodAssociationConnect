@@ -195,3 +195,13 @@ def post_user_message(user_id: str, user_message: UserMessageIn):
         return {"message": "メッセージを送信しました", "id": new_doc.id}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+@router.post("/regist/userid", summary="ユーザーIDを登録します。")
+def regist_user_id(user_id: str, birthday: str, name: str, phone_number: str, region_id: str):
+    db.collection("Users").document(user_id).set({
+        "birthday_yyyymmdd": birthday,
+        "name": name,
+        "phone_number": phone_number,
+        "RegionID": region_id
+    })
+    return 200
