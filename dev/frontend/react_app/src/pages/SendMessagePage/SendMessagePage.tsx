@@ -1,4 +1,8 @@
+<<<<<<< Updated upstream
 import React, { useState } from 'react';
+=======
+import React, { useState, useEffect } from 'react';
+>>>>>>> Stashed changes
 import type { CSSProperties } from 'react';
 
 const SendMessagePage: React.FC = () => {
@@ -7,11 +11,45 @@ const SendMessagePage: React.FC = () => {
   const [recipient, setRecipient] = useState('送信先（町会名）');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [newsList, setNewsList] = useState<any[]>([]);
+<<<<<<< Updated upstream
   const [userMessages, setUserMessages] = useState<any[]>([]);
   const [userIds, setUserIds] = useState<string[]>([]);  // 追加：ユーザーID一覧用state
 
   const regionId = "ugyGiVvlg4fDN2afMnoe(RegionID)"; // ← RegionID
   const userId = "LI9dnLrsMP4gjjumF0me";  // ← 固定テスト用ユーザーID
+=======
+  const [nearRegionNewsList, setNearRegionNewsList] = useState<any[]>([]);
+  const [userMessages, setUserMessages] = useState<any[]>([]);
+  const [userIds, setUserIds] = useState<string[]>([]);
+  const [regions, setRegions] = useState<{ id: string; name: string }[]>([]);
+
+  const regionId = "ugyGiVvlg4fDN2afMnoe(RegionID)";
+  const userId = "LI9dnLrsMP4gjjumF0me";
+
+  useEffect(() => {
+    fetchRegions();
+  }, []);
+
+  const fetchRegions = async () => {
+    try {
+      const res = await fetch("http://localhost:8080/api/v1/regions/names", {
+        method: "GET",
+      });
+
+      if (!res.ok) {
+        const error = await res.text();
+        alert("地域の取得に失敗しました: " + error);
+        return;
+      }
+
+      const data = await res.json();
+      setRegions(data);
+    } catch (err) {
+      alert("通信エラーが発生しました");
+      console.error(err);
+    }
+  };
+>>>>>>> Stashed changes
 
   const handleSend = async () => {
     const payload = {
@@ -38,7 +76,10 @@ const SendMessagePage: React.FC = () => {
       const data = await res.json();
       alert(`メッセージ送信成功！メッセージID: ${data.id}`);
 
+<<<<<<< Updated upstream
       // 入力リセット
+=======
+>>>>>>> Stashed changes
       setTitle('');
       setBody('');
     } catch (err) {
@@ -68,6 +109,30 @@ const SendMessagePage: React.FC = () => {
     }
   };
 
+<<<<<<< Updated upstream
+=======
+  const fetchNearRegionNews = async () => {
+    try {
+      const res = await fetch(`http://localhost:8080/api/v1/regions/${regionId}/news/near_regions`, {
+        method: "GET",
+      });
+
+      if (!res.ok) {
+        const error = await res.text();
+        console.error("隣接ニュース取得エラー:", error);
+        alert("隣接地域のニュース取得に失敗しました");
+        return;
+      }
+
+      const data = await res.json();
+      setNearRegionNewsList(data);
+    } catch (err) {
+      console.error("通信エラー:", err);
+      alert("通信に失敗しました");
+    }
+  };
+
+>>>>>>> Stashed changes
   const handleGetMessages = async () => {
     try {
       const res = await fetch(`http://localhost:8080/api/v1/users/messages?user_id=${userId}`, {
@@ -89,7 +154,10 @@ const SendMessagePage: React.FC = () => {
     }
   };
 
+<<<<<<< Updated upstream
   // 新規追加: FirestoreのUsersドキュメントID一覧取得
+=======
+>>>>>>> Stashed changes
   const fetchUserIds = async () => {
     try {
       const res = await fetch("http://localhost:8080/api/v1/users/get/id", {
@@ -144,6 +212,7 @@ const SendMessagePage: React.FC = () => {
 
           {isDropdownOpen && (
             <ul style={styles.dropdownList}>
+<<<<<<< Updated upstream
               {['町会A', '町会B', '町会C'].map((name) => (
                 <li
                   key={name}
@@ -154,6 +223,18 @@ const SendMessagePage: React.FC = () => {
                   }}
                 >
                   {name}
+=======
+              {regions.map((region) => (
+                <li
+                  key={region.id}
+                  style={styles.dropdownItem}
+                  onClick={() => {
+                    setRecipient(region.name);
+                    setIsDropdownOpen(false);
+                  }}
+                >
+                  {region.name}
+>>>>>>> Stashed changes
                 </li>
               ))}
             </ul>
@@ -199,6 +280,24 @@ const SendMessagePage: React.FC = () => {
 
           <hr />
 
+<<<<<<< Updated upstream
+=======
+          <button onClick={fetchNearRegionNews} style={styles.sendButton}>
+            隣接地域のニュースを取得
+          </button>
+
+          <ul>
+            {nearRegionNewsList.length === 0 && <li>ニュースはありません</li>}
+            {nearRegionNewsList.map((news) => (
+              <li key={news.id}>
+                <strong>{news.title}</strong> - {news.text}
+              </li>
+            ))}
+          </ul>
+
+          <hr />
+
+>>>>>>> Stashed changes
           <button onClick={handleGetMessages} style={styles.sendButton}>
             ユーザーメッセージ取得
           </button>
@@ -213,7 +312,10 @@ const SendMessagePage: React.FC = () => {
 
           <hr />
 
+<<<<<<< Updated upstream
           {/* 新規追加部分 */}
+=======
+>>>>>>> Stashed changes
           <button onClick={fetchUserIds} style={styles.sendButton}>
             ユーザーID一覧を取得
           </button>

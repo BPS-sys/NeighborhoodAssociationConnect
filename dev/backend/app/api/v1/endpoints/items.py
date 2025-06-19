@@ -163,6 +163,7 @@ def list_news(region_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
+<<<<<<< HEAD
 @router.get("/users/messages", summary="ユーザーメッセージの取得")
 def get_user_messages(user_id: str):
     try:
@@ -196,6 +197,7 @@ def post_user_message(user_id: str, user_message: UserMessageIn):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
+<<<<<<< Updated upstream
 @router.post("/regist/userid", summary="ユーザーIDを登録します。")
 def regist_user_id(user_id: str, birthday: str, name: str, phone_number: str, region_id: str):
     db.collection("Users").document(user_id).set({
@@ -214,6 +216,8 @@ def regist_region(region_id: str, region_name: str):
     })
     return 200
     
+=======
+>>>>>>> Stashed changes
 @router.get("/users/get/id", summary="ユーザーID一覧の取得")
 def get_user_ids():
     try:
@@ -222,4 +226,94 @@ def get_user_ids():
         user_ids = [doc.id for doc in docs]
         return {"user_ids": user_ids}
     except Exception as e:
+<<<<<<< Updated upstream
         raise HTTPException(status_code=500, detail=str(e))
+=======
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.get("/regions/names", summary="すべての地域名を取得")
+def get_region_names():
+    try:
+        regions_ref = db.collection("Regions")
+        docs = regions_ref.stream()
+
+        result = []
+        for doc in docs:
+            data = doc.to_dict()
+            result.append({
+                "id": doc.id,
+                "name": data.get("Name", "")
+            })
+
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+=======
+>>>>>>> 3cd86929 (firebase_redingのget_neighbor_news_jsonをitemsに移植しエンドポイント処理を追加)
+# ---- ニュース一覧取得（隣接地域） ----
+@router.get("/regions/{region_id}/news/near_regions", response_model=List[NewsOut], summary="隣接する地域のニュース")
+def near_regions_news(region_id: str):
+    try:
+<<<<<<< HEAD
+        near_regions_ref = db.collection("Regions").document(region_id).collection("near_regions")
+        id_docs = near_regions_ref.stream()
+
+        id_list = [doc.to_dict().get("ID") for doc in id_docs if doc.to_dict().get("ID")]
+
+        result = []
+        for near_id in id_list:
+            news_ref = db.collection("Regions").document(near_id).collection('News')
+            news_docs = news_ref.stream()
+
+            for doc in news_docs:
+                d = doc.to_dict()
+                print(d)
+=======
+        #サブコレクション参照
+        near_regions = db.collection("Regions").document(region_id).collection("near_regions")
+
+        #ドキュメント取得
+        id_docs = near_regions.stream()
+
+        #IDリスト
+        id_list = []
+
+        #ニュース出力
+        result = []
+
+        #ドキュメント内のIDだけをリスト化
+        for doc in id_docs:
+            data = doc.to_dict()
+            if "ID" in data:
+                id_list.append(data["ID"])
+
+        #リスト化したIDを使って隣接する地域のnewsを一括取得
+        for id in id_list:
+            news_ref = db.collection("Regions").document(id).collection('news')
+            news_docs = news_ref.stream()
+            for doc in news_docs:
+                d = doc.to_dict()
+>>>>>>> 3cd86929 (firebase_redingのget_neighbor_news_jsonをitemsに移植しエンドポイント処理を追加)
+                result.append(NewsOut(
+                    id=doc.id,
+                    title=d.get('Title', ''),
+                    text=d.get('Text', ''),
+<<<<<<< HEAD
+                    time=d.get('Time') or datetime.now(),
+                    columns=d.get('columns', '')
+                ))
+        return result
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"隣接地域のニュース取得中にエラーが発生しました: {str(e)}")
+=======
+                    time=d.get('Time', datetime.now()),
+                    columns=d.get('columns', '')
+                    ))
+        return result
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+>>>>>>> 3cd86929 (firebase_redingのget_neighbor_news_jsonをitemsに移植しエンドポイント処理を追加)
+>>>>>>> Stashed changes
