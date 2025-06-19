@@ -205,3 +205,11 @@ def regist_user_id(user_id: str, birthday: str, name: str, phone_number: str, re
         "RegionID": region_id
     })
     return 200
+
+
+@router.post("/regist/region", summary="町会を登録します。")
+def regist_region(region_id: str, region_name: str):
+    db.collection("Regions").document(region_id).set({
+        "Name": region_name,
+    })
+    return 200
