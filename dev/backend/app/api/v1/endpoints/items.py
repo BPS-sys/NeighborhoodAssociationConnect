@@ -163,6 +163,47 @@ def list_news(region_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
+
+# ---- ニュース一覧取得（隣接地域） ----
+@router.get("/regions/{region_id}/news/near_regions", response_model=List[NewsOut], summary="隣接する地域のニュース")
+def near_regions_news(region_id: str):
+    try:
+        #サブコレクション参照
+        near_regions = db.collection("Regions").document(region_id).collection("near_regions")
+
+        #ドキュメント取得
+        id_docs = near_regions.stream()
+
+        #IDリスト
+        id_list = []
+
+        #ニュース出力
+        result = []
+
+        #ドキュメント内のIDだけをリスト化
+        for doc in id_docs:
+            data = doc.to_dict()
+            if "ID" in data:
+                id_list.append(data["ID"])
+
+        #リスト化したIDを使って隣接する地域のnewsを一括取得
+        for id in id_list:
+            news_ref = db.collection("Regions").document(id).collection('news')
+            news_docs = news_ref.stream()
+            for doc in news_docs:
+                d = doc.to_dict()
+                result.append(NewsOut(
+                    id=doc.id,
+                    title=d.get('Title', ''),
+                    text=d.get('Text', ''),
+                    time=d.get('Time', datetime.now()),
+                    columns=d.get('columns', '')
+                    ))
+        return result
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/users/messages", summary="ユーザーメッセージの取得")
 def get_user_messages(user_id: str):
     try:
@@ -213,3 +254,4 @@ def regist_region(region_id: str, region_name: str):
         "Name": region_name,
     })
     return 200
+
