@@ -60,11 +60,30 @@ def initialize_firebase():
 
 db = initialize_firebase()
 
+
 @router.post("/Chat")
 async def Chat(chat_message: ChatMessage):
     chat_response = await mcp_client.chat(query=chat_message.UserMessage, region_id=chat_message.RegionID, region_name=chat_message.RegionName)
     return chat_response
 
+
+@router.post("/new_add_reginions",summary = "自動生成IDで新しい地域を登録")
+def add_new_region(name:str): #フロントエンドから、地域の名前を取得
+    try:
+        New_regions_ref = db.collection("Regions")
+        # ドキュメントのデータを準備
+        region_data = {'Name': name}
+        # ドキュメントIDを自動生成して新しいドキュメントを追加
+        new_doc_ref = New_regions_ref.add(region_data)[1]
+        # 新しく追加されたドキュメントのIDを取得
+        new_region_id = new_doc_ref.id
+        return {
+                "message": "新しい地域が正常に登録されました",
+                "region_id": new_region_id, # 自動生成されたID
+                "region_name": name
+            }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"地域の登録に失敗しました: {str(e)}")
 
 @router.get("/regions/view", summary="地域ID一覧の取得", response_model=List[str])
 def list_region_ids():
