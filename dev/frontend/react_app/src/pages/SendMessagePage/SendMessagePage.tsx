@@ -1,8 +1,4 @@
-<<<<<<< Updated upstream
-import React, { useState } from 'react';
-=======
 import React, { useState, useEffect } from 'react';
->>>>>>> Stashed changes
 import type { CSSProperties } from 'react';
 
 const SendMessagePage: React.FC = () => {
@@ -11,20 +7,12 @@ const SendMessagePage: React.FC = () => {
   const [recipient, setRecipient] = useState('送信先（町会名）');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [newsList, setNewsList] = useState<any[]>([]);
-<<<<<<< Updated upstream
-  const [userMessages, setUserMessages] = useState<any[]>([]);
-  const [userIds, setUserIds] = useState<string[]>([]);  // 追加：ユーザーID一覧用state
-
-  const regionId = "ugyGiVvlg4fDN2afMnoe(RegionID)"; // ← RegionID
-  const userId = "LI9dnLrsMP4gjjumF0me";  // ← 固定テスト用ユーザーID
-=======
   const [nearRegionNewsList, setNearRegionNewsList] = useState<any[]>([]);
   const [userMessages, setUserMessages] = useState<any[]>([]);
   const [userIds, setUserIds] = useState<string[]>([]);
   const [regions, setRegions] = useState<{ id: string; name: string }[]>([]);
-
-  const regionId = "ugyGiVvlg4fDN2afMnoe(RegionID)";
-  const userId = "LI9dnLrsMP4gjjumF0me";
+  const [selectedRegionId, setSelectedRegionId] = useState('');
+  const [selectedRegionUsers, setSelectedRegionUsers] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     fetchRegions();
@@ -32,148 +20,90 @@ const SendMessagePage: React.FC = () => {
 
   const fetchRegions = async () => {
     try {
-      const res = await fetch("http://localhost:8080/api/v1/regions/names", {
-        method: "GET",
-      });
-
-      if (!res.ok) {
-        const error = await res.text();
-        alert("地域の取得に失敗しました: " + error);
-        return;
-      }
-
+      const res = await fetch("http://localhost:8080/api/v1/regions/names");
+      if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
       setRegions(data);
     } catch (err) {
-      alert("通信エラーが発生しました");
+      alert("地域の取得に失敗しました");
       console.error(err);
     }
   };
->>>>>>> Stashed changes
+
+  const fetchUsersInSelectedRegion = async (regionId: string) => {
+    try {
+      const res = await fetch(`http://localhost:8080/api/v1/regions/${regionId}/users`);
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      setSelectedRegionUsers(data.users);
+    } catch (err) {
+      alert("地域のユーザー取得に失敗しました");
+      console.error(err);
+    }
+  };
 
   const handleSend = async () => {
-    const payload = {
-      title: title,
-      text: body,
-    };
-
-    try {
-      const res = await fetch(`http://localhost:8080/api/v1/users/post/messages?user_id=${userId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const error = await res.text();
-        console.error("送信エラー:", error);
-        alert("メッセージの送信に失敗しました");
-        return;
-      }
-
-      const data = await res.json();
-      alert(`メッセージ送信成功！メッセージID: ${data.id}`);
-
-<<<<<<< Updated upstream
-      // 入力リセット
-=======
->>>>>>> Stashed changes
-      setTitle('');
-      setBody('');
-    } catch (err) {
-      console.error("通信エラー:", err);
-      alert("通信に失敗しました");
+    if (!selectedRegionUsers.length) {
+      alert("この地域にはユーザーがいません");
+      return;
     }
+
+    const payload = { title, text: body };
+    let success = 0, failure = 0;
+
+    for (const user of selectedRegionUsers) {
+      try {
+        const res = await fetch(`http://localhost:8080/api/v1/users/post/messages?user_id=${user.id}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) success++;
+        else failure++;
+      } catch (err) {
+        console.error("送信失敗", err);
+        failure++;
+      }
+    }
+
+    alert("送信完了");
+    setTitle('');
+    setBody('');
   };
 
   const fetchNews = async () => {
     try {
-      const res = await fetch(`http://localhost:8080/api/v1/regions/${regionId}/news`, {
-        method: "GET",
-      });
-
-      if (!res.ok) {
-        const error = await res.text();
-        console.error("Fetch Error:", error);
-        alert("ニュースの取得に失敗しました");
-        return;
-      }
-
+      const res = await fetch(`http://localhost:8080/api/v1/regions/${selectedRegionId}/news`);
+      if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
       setNewsList(data);
     } catch (err) {
-      console.error("通信エラー:", err);
-      alert("通信に失敗しました");
+      alert("ニュースの取得に失敗しました");
+      console.error(err);
     }
   };
 
-<<<<<<< Updated upstream
-=======
   const fetchNearRegionNews = async () => {
     try {
-      const res = await fetch(`http://localhost:8080/api/v1/regions/${regionId}/news/near_regions`, {
-        method: "GET",
-      });
-
-      if (!res.ok) {
-        const error = await res.text();
-        console.error("隣接ニュース取得エラー:", error);
-        alert("隣接地域のニュース取得に失敗しました");
-        return;
-      }
-
+      const res = await fetch(`http://localhost:8080/api/v1/regions/${selectedRegionId}/news/near_regions`);
+      if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
       setNearRegionNewsList(data);
     } catch (err) {
-      console.error("通信エラー:", err);
-      alert("通信に失敗しました");
+      alert("隣接地域のニュース取得に失敗しました");
+      console.error(err);
     }
   };
 
->>>>>>> Stashed changes
   const handleGetMessages = async () => {
+    const userId = "LI9dnLrsMP4gjjumF0me";
     try {
-      const res = await fetch(`http://localhost:8080/api/v1/users/messages?user_id=${userId}`, {
-        method: "GET",
-      });
-
-      if (!res.ok) {
-        const error = await res.text();
-        console.error("取得エラー:", error);
-        alert("メッセージの取得に失敗しました");
-        return;
-      }
-
+      const res = await fetch(`http://localhost:8080/api/v1/users/messages?user_id=${userId}`);
+      if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
       setUserMessages(data);
     } catch (err) {
-      console.error("通信エラー:", err);
-      alert("通信に失敗しました");
-    }
-  };
-
-<<<<<<< Updated upstream
-  // 新規追加: FirestoreのUsersドキュメントID一覧取得
-=======
->>>>>>> Stashed changes
-  const fetchUserIds = async () => {
-    try {
-      const res = await fetch("http://localhost:8080/api/v1/users/get/id", {
-        method: "GET",
-      });
-
-      if (!res.ok) {
-        const error = await res.text();
-        alert("ユーザーID一覧取得に失敗しました: " + error);
-        return;
-      }
-
-      const data = await res.json();
-      setUserIds(data.user_ids || []);
-    } catch (err) {
-      alert("通信エラーが発生しました");
+      alert("ユーザーメッセージ取得に失敗しました");
       console.error(err);
     }
   };
@@ -192,7 +122,6 @@ const SendMessagePage: React.FC = () => {
     input: { width: '100%', padding: '8px' },
     textarea: { width: '100%', padding: '8px' },
     sendButton: { backgroundColor: '#007bff', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '5px', cursor: 'pointer', marginTop: '10px' },
-    userIdList: { marginTop: '20px' },
   };
 
   return (
@@ -212,29 +141,18 @@ const SendMessagePage: React.FC = () => {
 
           {isDropdownOpen && (
             <ul style={styles.dropdownList}>
-<<<<<<< Updated upstream
-              {['町会A', '町会B', '町会C'].map((name) => (
-                <li
-                  key={name}
-                  style={styles.dropdownItem}
-                  onClick={() => {
-                    setRecipient(name);
-                    setIsDropdownOpen(false);
-                  }}
-                >
-                  {name}
-=======
               {regions.map((region) => (
                 <li
                   key={region.id}
                   style={styles.dropdownItem}
                   onClick={() => {
                     setRecipient(region.name);
+                    setSelectedRegionId(region.id);
                     setIsDropdownOpen(false);
+                    fetchUsersInSelectedRegion(region.id);
                   }}
                 >
                   {region.name}
->>>>>>> Stashed changes
                 </li>
               ))}
             </ul>
@@ -280,8 +198,6 @@ const SendMessagePage: React.FC = () => {
 
           <hr />
 
-<<<<<<< Updated upstream
-=======
           <button onClick={fetchNearRegionNews} style={styles.sendButton}>
             隣接地域のニュースを取得
           </button>
@@ -297,7 +213,6 @@ const SendMessagePage: React.FC = () => {
 
           <hr />
 
->>>>>>> Stashed changes
           <button onClick={handleGetMessages} style={styles.sendButton}>
             ユーザーメッセージ取得
           </button>
@@ -305,25 +220,8 @@ const SendMessagePage: React.FC = () => {
           <ul>
             {userMessages.map((msg) => (
               <li key={msg.id}>
-                <strong>{msg.Title}</strong> - {msg.Text} （{new Date(msg.Senttime).toLocaleString()}）
+                <strong>{msg.Title}</strong> - {msg.Text}（{new Date(msg.Senttime).toLocaleString()}）
               </li>
-            ))}
-          </ul>
-
-          <hr />
-
-<<<<<<< Updated upstream
-          {/* 新規追加部分 */}
-=======
->>>>>>> Stashed changes
-          <button onClick={fetchUserIds} style={styles.sendButton}>
-            ユーザーID一覧を取得
-          </button>
-
-          <ul style={styles.userIdList}>
-            {userIds.length === 0 && <li>ユーザーIDがありません</li>}
-            {userIds.map((id) => (
-              <li key={id}>{id}</li>
             ))}
           </ul>
         </div>
