@@ -1,20 +1,30 @@
 from services import MCP_Client
 from fastapi import APIRouter
 import asyncio
-from fastapi import FastAPI, HTTPException, Body
+from fastapi import FastAPI, HTTPException, Body, Depends
 from typing import List, Optional
 from datetime import datetime
 import firebase_admin
 from firebase_admin import credentials, firestore
 import os
 import dotenv
+from contextlib import asynccontextmanager
 
 from api.schema import *
+import uuid
 
 dotenv.load_dotenv()
 
-router = APIRouter()
 mcp_client = MCP_Client.ChatAgent()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("startup event")
+    await mcp_client.get_tools_from_mcp_server_qdrant()
+    yield
+    print("shutdown event")
+
+router = APIRouter(lifespan=lifespan)
 
 def initialize_firebase():
     if not firebase_admin._apps:
@@ -44,9 +54,7 @@ db = initialize_firebase()
 
 @router.post("/Chat")
 async def Chat(chat_message: ChatMessage):
-    print(f"UserMessage: {chat_message.UserMessage}")
-    print(type(chat_message.UserMessage))
-    chat_response = await mcp_client.chat(query=chat_message.UserMessage, region_id=chat_message.RegionID)
+    chat_response = await mcp_client.chat(query=chat_message.UserMessage, region_id=chat_message.RegionID, region_name=chat_message.RegionName)
     return chat_response
 
 
@@ -155,6 +163,7 @@ def list_news(region_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
+
 # ---- ニュース一覧取得（隣接地域） ----
 @router.get("/regions/{region_id}/news/near_regions", response_model=List[NewsOut], summary="隣接する地域のニュース")
 def near_regions_news(region_id: str):
@@ -194,3 +203,55 @@ def near_regions_news(region_id: str):
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/users/messages", summary="ユーザーメッセージの取得")
+def get_user_messages(user_id: str):
+    try:
+        messages_ref = db.collection("Users").document(user_id).collection("Messages")
+        docs = messages_ref.stream()
+        result = []
+        for doc in docs:
+            d = doc.to_dict()
+            result.append({
+                "id": doc.id,
+                "Title": d.get("Title", ""),
+                "Text": d.get("Text", ""),
+                "Senttime": d.get("SentTime", datetime.now())
+            })
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.post("/users/post/messages", summary="ユーザーメッセージの送信")
+def post_user_message(user_id: str, user_message: UserMessageIn):
+    print(uuid.uuid4())
+    try:
+        messages_ref = db.collection("Users").document(user_id).collection("Messages")
+        message_data = {
+            "Title": user_message.title,
+            "Text": user_message.text,
+            "SentTime": datetime.now()
+        }
+        new_doc = messages_ref.add(message_data)[1]
+        return {"message": "メッセージを送信しました", "id": new_doc.id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.post("/regist/userid", summary="ユーザーIDを登録します。")
+def regist_user_id(user_id: str, birthday: str, name: str, phone_number: str, region_id: str):
+    db.collection("Users").document(user_id).set({
+        "birthday_yyyymmdd": birthday,
+        "name": name,
+        "phone_number": phone_number,
+        "RegionID": region_id
+    })
+    return 200
+
+
+@router.post("/regist/region", summary="町会を登録します。")
+def regist_region(region_id: str, region_name: str):
+    db.collection("Regions").document(region_id).set({
+        "Name": region_name,
+    })
+    return 200
+

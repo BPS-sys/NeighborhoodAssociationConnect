@@ -1,3 +1,4 @@
+// app/_layout.tsx など適切なレイアウトファイル内
 import React from "react";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -41,6 +42,14 @@ const BottomTabNavigator = () => {
                   color={color}
                 />
               );
+            case "article":
+              return (
+                <MaterialCommunityIcons
+                  name={focused ? "newspaper" : "newspaper-variant-outline"}
+                  size={size}
+                  color={color}
+                />
+              );
           }
         },
         tabBarLabelStyle: { fontSize: 12 },
@@ -48,10 +57,11 @@ const BottomTabNavigator = () => {
         headerShown: false,
       })}
     >
-      <Tabs.Screen name="index" options={{ title: "ホーム" }} />
-      <Tabs.Screen name="board" options={{ title: "掲示板" }} />
-      <Tabs.Screen name="chat" options={{ title: "チャット" }} />
-      <Tabs.Screen name="schedule" options={{ title: "スケジュール" }} />
+      <Tabs.Screen name="index"   options={{ title: "ホーム" }} />
+      <Tabs.Screen name="board"   options={{ title: "掲示板" }} />
+      <Tabs.Screen name="chat"    options={{ title: "チャット" }} />
+      <Tabs.Screen name="schedule"options={{ title: "スケジュール" }} />
+      <Tabs.Screen name="article" options={{ title: "記事" }} />
     </Tabs>
   );
 };
