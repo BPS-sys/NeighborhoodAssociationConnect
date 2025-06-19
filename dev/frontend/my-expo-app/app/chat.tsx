@@ -50,12 +50,13 @@ export default function ChatScreen() {
         body: JSON.stringify({
           UserMessage: input,
           RegionID: "ugyGiVvlg4fDN2afMnoe",
+          RegionName: "滝川地域活動協議会",
         }),
       });
 
       const data = await response.json();
       
-
+      
       const replyMessage = {
         sender: "ai",
         text: data || "AIの返答がありません",
