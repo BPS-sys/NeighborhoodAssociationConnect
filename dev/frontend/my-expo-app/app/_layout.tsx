@@ -1,6 +1,11 @@
-import React from "react";
-import BottomTabNavigator from "../components/BottomTabNavigator";
+// app/_layout.tsx
+import { Slot } from 'expo-router';
+import { AuthProvider } from '../contexts/AuthContext'; // 相対パスに注意
 
-export default function Layout() {
-  return <BottomTabNavigator />;
+export default function RootLayout() {
+  return (
+    <AuthProvider>
+      <Slot />
+    </AuthProvider>
+  );
 }
