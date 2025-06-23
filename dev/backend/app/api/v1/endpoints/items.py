@@ -20,7 +20,7 @@ mcp_client = MCP_Client.ChatAgent()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("startup event")
-    await mcp_client.get_tools_from_mcp_server_qdrant()
+    await mcp_client.get_tools_from_mcp_server()
     yield
     print("shutdown event")
 
