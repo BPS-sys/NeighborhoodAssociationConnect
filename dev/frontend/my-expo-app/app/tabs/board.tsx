@@ -1,8 +1,7 @@
-// app/(tabs)/board.tsx
-import React from "react";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import BulletDetailScreen from "../screens/BulletDetailScreen";
-import BulletHomeScreen from "../screens/BulletHomeScreen";
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import React from 'react';
+import BulletHomeScreen from '../../screens/BulletHomeScreen';
+import BulletDetailScreen from '../../screens/BulletDetailScreen';
 
 export type RootStackParamList = {
   Home: undefined;
