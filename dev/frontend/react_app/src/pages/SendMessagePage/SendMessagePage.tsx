@@ -6,9 +6,6 @@ const SendMessagePage: React.FC = () => {
   const [body, setBody] = useState('');
   const [recipient, setRecipient] = useState('送信先（町会名）');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [newsList, setNewsList] = useState<any[]>([]);
-  const [nearRegionNewsList, setNearRegionNewsList] = useState<any[]>([]);
-  const [userMessages, setUserMessages] = useState<any[]>([]);
   const [userIds, setUserIds] = useState<string[]>([]);
   const [regions, setRegions] = useState<{ id: string; name: string }[]>([]);
   const [selectedRegionId, setSelectedRegionId] = useState('');
@@ -31,6 +28,7 @@ const SendMessagePage: React.FC = () => {
   };
 
   const fetchUsersInSelectedRegion = async (regionId: string) => {
+    setSelectedRegionUsers([]);
     try {
       const res = await fetch(`http://localhost:8080/api/v1/regions/${regionId}/users`);
       if (!res.ok) throw new Error(await res.text());
@@ -43,6 +41,11 @@ const SendMessagePage: React.FC = () => {
   };
 
   const handleSend = async () => {
+    if (!title || !body) {
+      alert("タイトルと本文を入力してください");
+      return;
+    }
+
     if (!selectedRegionUsers.length) {
       alert("この地域にはユーザーがいません");
       return;
@@ -66,46 +69,9 @@ const SendMessagePage: React.FC = () => {
       }
     }
 
-    alert("送信完了");
+    alert("メッセージ送信に成功しました。");
     setTitle('');
     setBody('');
-  };
-
-  const fetchNews = async () => {
-    try {
-      const res = await fetch(`http://localhost:8080/api/v1/regions/${selectedRegionId}/news`);
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
-      setNewsList(data);
-    } catch (err) {
-      alert("ニュースの取得に失敗しました");
-      console.error(err);
-    }
-  };
-
-  const fetchNearRegionNews = async () => {
-    try {
-      const res = await fetch(`http://localhost:8080/api/v1/regions/${selectedRegionId}/news/near_regions`);
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
-      setNearRegionNewsList(data);
-    } catch (err) {
-      alert("隣接地域のニュース取得に失敗しました");
-      console.error(err);
-    }
-  };
-
-  const handleGetMessages = async () => {
-    const userId = "LI9dnLrsMP4gjjumF0me";
-    try {
-      const res = await fetch(`http://localhost:8080/api/v1/users/messages?user_id=${userId}`);
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
-      setUserMessages(data);
-    } catch (err) {
-      alert("ユーザーメッセージ取得に失敗しました");
-      console.error(err);
-    }
   };
 
   const styles: { [key: string]: CSSProperties } = {
@@ -114,7 +80,7 @@ const SendMessagePage: React.FC = () => {
     sidebarButton: { display: 'block', marginBottom: '10px', backgroundColor: '#444', color: 'white', padding: '10px', border: 'none', borderRadius: '5px' },
     main: { flexGrow: 1, padding: '20px' },
     title: { fontSize: '24px', marginBottom: '20px' },
-    formContainer: { maxWidth: '600px' },
+    formContainer: { maxWidth: '600px', width: '100%' },
     dropdown: { marginBottom: '10px', cursor: 'pointer' },
     dropdownList: { listStyle: 'none', padding: 0, margin: 0, backgroundColor: '#eee' },
     dropdownItem: { padding: '8px', borderBottom: '1px solid #ccc', cursor: 'pointer' },
@@ -181,49 +147,6 @@ const SendMessagePage: React.FC = () => {
           <button style={styles.sendButton} onClick={handleSend}>
             メッセージ送信
           </button>
-
-          <hr />
-
-          <button onClick={fetchNews} style={styles.sendButton}>
-            ニュース一覧を取得
-          </button>
-
-          <ul>
-            {newsList.map((news) => (
-              <li key={news.id}>
-                <strong>{news.title}</strong> - {news.text}
-              </li>
-            ))}
-          </ul>
-
-          <hr />
-
-          <button onClick={fetchNearRegionNews} style={styles.sendButton}>
-            隣接地域のニュースを取得
-          </button>
-
-          <ul>
-            {nearRegionNewsList.length === 0 && <li>ニュースはありません</li>}
-            {nearRegionNewsList.map((news) => (
-              <li key={news.id}>
-                <strong>{news.title}</strong> - {news.text}
-              </li>
-            ))}
-          </ul>
-
-          <hr />
-
-          <button onClick={handleGetMessages} style={styles.sendButton}>
-            ユーザーメッセージ取得
-          </button>
-
-          <ul>
-            {userMessages.map((msg) => (
-              <li key={msg.id}>
-                <strong>{msg.Title}</strong> - {msg.Text}（{new Date(msg.Senttime).toLocaleString()}）
-              </li>
-            ))}
-          </ul>
         </div>
       </div>
     </div>
