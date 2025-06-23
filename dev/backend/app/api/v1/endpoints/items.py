@@ -254,4 +254,87 @@ def regist_region(region_id: str, region_name: str):
         "Name": region_name,
     })
     return 200
+    
+@router.get("/users/get/id", summary="ユーザーID一覧の取得")
+def get_user_ids():
+    try:
+        users_ref = db.collection("Users")
+        docs = users_ref.stream()
+        user_ids = [doc.id for doc in docs]
+        return {"user_ids": user_ids}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
+    
+@router.get("/regions/names", summary="すべての地域名を取得")
+def get_region_names():
+    try:
+        regions_ref = db.collection("Regions")
+        docs = regions_ref.stream()
+
+        result = []
+        for doc in docs:
+            data = doc.to_dict()
+            result.append({
+                "id": doc.id,
+                "name": data.get("Name", "")
+            })
+
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ---- ニュース一覧取得（隣接地域） ----
+@router.get("/regions/{region_id}/news/near_regions", response_model=List[NewsOut], summary="隣接する地域のニュース")
+def near_regions_news(region_id: str):
+    try:
+        #サブコレクション参照
+        near_regions_ref = db.collection("Regions").document(region_id).collection("near_regions")
+
+        #ドキュメント取得
+        id_docs = near_regions_ref.stream()
+
+        #IDリスト
+        id_list = [doc.to_dict().get("ID") for doc in id_docs if doc.to_dict().get("ID")]
+
+        #ニュース出力
+        result = []
+
+        #リスト化したIDを使って隣接する地域のnewsを一括取得
+        for id in id_list:
+            news_ref = db.collection("Regions").document(id).collection('News')
+            news_docs = news_ref.stream()
+            for doc in news_docs:
+                d = doc.to_dict()
+                result.append(NewsOut(
+                    id=doc.id,
+                    title=d.get('Title', ''),
+                    text=d.get('Text', ''),
+                    time=d.get('Time') or datetime.now(),
+                    columns=d.get('columns', '')
+                ))
+        return result
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"隣接地域のニュース取得中にエラーが発生しました: {str(e)}")
+
+
+#指定地域のユーザー一覧を取得
+@router.get("/regions/{region_id}/users", summary="指定地域のユーザー一覧を取得")
+def get_region_users(region_id: str):
+    try:
+        users_ref = db.collection("Users")
+        query = users_ref.where("RegionID", "==", region_id)
+        results = query.stream()
+
+        users = []
+        for doc in results:
+            data = doc.to_dict()
+            users.append({
+                "id": doc.id,
+                "name": data.get("name", "(名前なし)"),
+            })
+
+        return {"users": users}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
