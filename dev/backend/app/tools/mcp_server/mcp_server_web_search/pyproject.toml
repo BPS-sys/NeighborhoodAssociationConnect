@@ -10,4 +10,5 @@ dependencies = [
     "requests>=2.32.4",
     "fastmcp>=2.8.0",
     "mcp-server-fetch>=2025.1.17",
+    "tavily-python>=0.7.7",
 ]

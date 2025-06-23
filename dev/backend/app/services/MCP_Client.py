@@ -22,7 +22,7 @@ class ChatAgent:
         self.tool_descriptions = {}
         Prototype().setup()
         
-    async def get_tools_from_mcp_server_qdrant(self):
+    async def get_tools_from_mcp_server(self):
         for endpoint in self.mcp_endpoints:
             transport = SSETransport(endpoint)
             async with Client(transport=transport) as client:
@@ -158,6 +158,7 @@ class ChatAgent:
                 async with Client(transport=transport) as client:
                     result = await client.call_tool(tool_name, tool_args_json)
                 context = "\n\nWEBでの検索結果：" + result[-1].text
+        print(context)
         return context
     
     def fill_tool_args(self, user_query: str, region_id: str, tool_args: str, endpoint: str, tool_name: str) -> dict:
@@ -218,7 +219,8 @@ class ChatAgent:
                                           tool_args=tool_args)
             result_context += context
         # 最終的な応答生成
-        prompt = self.chat_client.create_prompt(user_prompt=f"ユーザーの質問: {query}\n\n{result_context}", use_system_prompt=True)
+        print("最終的な応答", result_context)
+        prompt = self.chat_client.create_prompt(user_prompt=f"ユーザーの質問: {query}\n\n今日の日付:{datetime.datetime.now()}\n\n{result_context}", use_system_prompt=True)
         response = self.chat_client.chat(prompt)
         response_text = response.choices[0].message.content
 

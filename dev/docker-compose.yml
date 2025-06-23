@@ -25,5 +25,7 @@ services:
   
   mcp-server-web-search:
     build: ./backend/app/tools/mcp_server/mcp_server_web_search
+    env_file:
+      - ./backend/.env
     ports:
       - '8001:8001'
