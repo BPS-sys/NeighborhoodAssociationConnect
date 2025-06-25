@@ -1,5 +1,4 @@
-// app/(tabs)/schedule.tsx
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,12 +7,12 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 const WEEK_DAYS = ["日", "月", "火", "水", "木", "金", "土"];
 const { width } = Dimensions.get("window");
-// 画面幅 - 両端マージン 32px を 7 分割したセルサイズ
 const CELL_SIZE = (width - 32) / 7;
 
 export default function ScheduleScreen() {
@@ -21,43 +20,57 @@ export default function ScheduleScreen() {
   const currentYear = today.getFullYear();
   const currentMonth = today.getMonth(); // 0-11
 
-  // ダミーイベント（複数イベント対応）
-  const eventsByDate: Record<number, { title: string; detail: string }[]> = {
-    3: [
-      { title: "ゴミ分別（燃えるゴミ）", detail: "可燃ごみを出してください" },
-      { title: "地域清掃", detail: "午前9時 公園集合" },
-    ],
-    5: [
-      { title: "防災訓練", detail: "午前10時 市民センター\nAED・初期消火訓練" },
-      { title: "非常食配布", detail: "午後1時～3時 市役所前" },
-    ],
-    8: [{ title: "資源ごみ分別日", detail: "古紙・缶・瓶・ペットボトル" }],
-    12: [{ title: "資源ごみ分別日", detail: "古紙・缶・瓶・ペットボトル" }],
-    15: [
-      { title: "防犯パトロール", detail: "午後7時 地区公民館集合" },
-      { title: "子ども音楽会", detail: "午後2時 市民ホール" },
-      { title: "健康ウォーキング", detail: "午前8時 市民公園集合" },
-    ],
-    20: [
-      { title: "地域清掃", detail: "午前9時 公園集合\n軍手・ゴミ袋持参" },
-      { title: "町内会会議", detail: "午後2時 集会所" },
-      { title: "ヨガ教室", detail: "午後6時 市民ホール" },
-    ],
-    25: [{ title: "避難所運営訓練", detail: "午前10時 小学校体育館" }],
-    28: [
-      { title: "資源ごみ分別日", detail: "古紙・缶・瓶・ペットボトル" },
-      { title: "こどもフェス", detail: "午後3時 市民広場" },
-    ],
-  };
+  const [eventsByDate, setEventsByDate] = useState<Record<number, { title: string; detail: string; starttime: string }[]>>({});
+  const [loading, setLoading] = useState(true);
+  
 
-  // 今月以降1年間分の (year,month) 配列を生成
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const res = await fetch("http://localhost:8080/api/v1/regions/ugyGiVvlg4fDN2afMnoe(RegionID)/news");
+        const data = await res.json();
+
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        const filtered = data.filter((item: any) => {
+          if (item.columns !== "イベント" || !item.starttime) return false;
+          const startDate = new Date(item.starttime);
+          return startDate >= startOfMonth;
+        });
+
+
+        const byDate: Record<string, { title: string; detail: string; starttime: string }[]> = {};
+          for (const item of filtered) {
+            const date = new Date(item.starttime);
+            const key = date.toISOString().split("T")[0]; // yyyy-MM-dd
+
+            if (!byDate[key]) {
+              byDate[key] = [];
+            }
+
+            byDate[key].push({
+              title: item.title ?? "イベント",
+              detail: item.body ?? "",
+              starttime: item.starttime,
+            });
+          }
+          setEventsByDate(byDate);
+      } catch (err) {
+        console.error("イベント取得失敗:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEvents();
+  }, []);
+
   const months = useMemo(() => {
     const arr: { year: number; month: number }[] = [];
-    // 当年：今月〜12月
     for (let m = currentMonth; m < 12; m++) {
       arr.push({ year: currentYear, month: m });
     }
-    // 次年：1月〜今月-1月
     for (let m = 0; m < currentMonth; m++) {
       arr.push({ year: currentYear + 1, month: m });
     }
@@ -66,7 +79,6 @@ export default function ScheduleScreen() {
 
   const [selectedDate, setSelectedDate] = useState<number | null>(null);
 
-  // 指定月のセル配列を作る
   const makeCells = (year: number, month: number) => {
     const first = new Date(year, month, 1).getDay();
     const last = new Date(year, month + 1, 0).getDate();
@@ -79,22 +91,15 @@ export default function ScheduleScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      {/* 上部：全カレンダー（縦スクロール） */}
       <ScrollView style={styles.calendarWrapper}>
         {months.map(({ year, month }) => {
           const cells = makeCells(year, month);
           return (
             <View key={`${year}-${month}`} style={styles.monthContainer}>
-              {/* 月ヘッダー */}
-              <Text
-                style={[styles.monthHeader, { height: CELL_SIZE * 0.8 }]}
-              >
+              <Text style={[styles.monthHeader, { height: CELL_SIZE * 0.8 }]}>
                 {year}年 {month + 1}月
               </Text>
-              {/* 曜日行 */}
-              <View
-                style={[styles.weekRow, { height: CELL_SIZE * 0.6 }]}
-              >
+              <View style={[styles.weekRow, { height: CELL_SIZE * 0.6 }]}>
                 {WEEK_DAYS.map((w, i) => (
                   <Text
                     key={i}
@@ -108,14 +113,13 @@ export default function ScheduleScreen() {
                   </Text>
                 ))}
               </View>
-              {/* 日付セル群 */}
               <View style={styles.daysContainer}>
                 {cells.map((d, idx) => {
                   const isToday =
                     d === today.getDate() &&
                     month === today.getMonth() &&
                     year === today.getFullYear();
-                  const hasEvent = d != null && (eventsByDate[d] || []).length > 0;
+                  const hasEvent = d != null && eventsByDate[`${year}-${(month + 1).toString().padStart(2, "0")}-${d.toString().padStart(2, "0")}`];
                   return (
                     <TouchableOpacity
                       key={idx}
@@ -126,7 +130,7 @@ export default function ScheduleScreen() {
                         selectedDate === d && styles.selectedCell,
                       ]}
                       activeOpacity={d ? 0.6 : 1}
-                      onPress={() => d && setSelectedDate(d)}
+                      onPress={() => d && setSelectedDate(`${year}-${(month + 1).toString().padStart(2, "0")}-${d.toString().padStart(2, "0")}`)}
                     >
                       <Text
                         style={[
@@ -153,18 +157,22 @@ export default function ScheduleScreen() {
         })}
       </ScrollView>
 
-      {/* 下部：イベントリスト（縦スクロール可） */}
       <View style={styles.eventListContainer}>
-        {selectedDate && eventsByDate[selectedDate] ? (
+        {loading ? (
+          <ActivityIndicator size="large" color="#888" style={{ marginTop: 20 }} />
+        ) : selectedDate && eventsByDate[selectedDate] ? (
           <ScrollView>
             {eventsByDate[selectedDate].map((ev, i) => (
-              <View key={i} style={styles.eventItem}>
-                <Text style={styles.eventTitle}>
-                  {selectedDate}日: {ev.title}
-                </Text>
-                <Text style={styles.eventDetail}>{ev.detail}</Text>
-              </View>
-            ))}
+            <View key={i} style={styles.eventItem}>
+              <Text style={styles.eventTitle}>
+                {ev.title}
+              </Text>
+              <Text style={styles.eventDetail}>{ev.detail}</Text>
+              <Text style={styles.eventTime}>
+                開始日時: {new Date(ev.starttime).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}
+              </Text>
+            </View>
+          ))}
           </ScrollView>
         ) : (
           <Text style={styles.eventPlaceholder}>
@@ -176,8 +184,16 @@ export default function ScheduleScreen() {
   );
 }
 
+
+
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#f5f5f5" },
+
+  eventTime: {
+    fontSize: 12,
+    color: "#888",
+    marginTop: 4,
+  },
 
   calendarWrapper: {
     flexGrow: 0,
