@@ -1,5 +1,5 @@
 // app/(tabs)/RegisterScreen.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -19,7 +19,7 @@ import {
 } from 'firebase/auth';
 
 export default function RegisterScreen() {
-  const [townId, setTownId] = useState<number>(1);
+  const [townId, setTownId] = useState("");
   const [name, setName] = useState('');
   const [birthYear, setBirthYear] = useState('');   // 4桁
   const [birthMonth, setBirthMonth] = useState(''); // 2桁
@@ -32,6 +32,25 @@ export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
+  const [townIdList, setTownIdList] = useState<{ id: string; name: string }[]>([]);
+
+
+  useEffect(() => {
+    const fetchTownIds = async () => {
+      try {
+        const res = await fetch('http://localhost:8080/api/v1/regions/names');
+        const data = await res.json();
+        setTownIdList(data);
+        if (data.length > 0) {
+          setTownId(data[0].id); // 初期選択を設定
+        }
+      } catch (error) {
+        console.error('地域一覧の取得に失敗しました:', error);
+      }
+    };
+
+    fetchTownIds();
+  }, []);
 
   const handleRegister = async () => {
     // 入力チェック
@@ -58,35 +77,73 @@ export default function RegisterScreen() {
 
     setError(''); // 問題なければクリア
     try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      await sendEmailVerification(userCredential.user);
-      // 成功時
-      setTownId(1);
-      setName('');
-      setBirthYear('');
-      setBirthMonth('');
-      setBirthDay('');
-      setPhone1('');
-      setPhone2('');
-      setPhone3('');
-      setEmail('');
-      setPassword('');
-      router.push('/auth/login');
-    } catch (err: any) {
-      let message = '登録に失敗しました。';
-      if (err.code === 'auth/email-already-in-use') {
-        message = 'このメールアドレスはすでに使用されています。';
-      } else if (err.code === 'auth/invalid-email') {
-        message = 'メールアドレスの形式が正しくありません。';
-      } else if (err.code === 'auth/weak-password') {
-        message = 'パスワードが弱すぎます（6文字以上が必要です）。';
+    const userCredential = await createUserWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+    await sendEmailVerification(userCredential.user);
+
+    // ユーザー登録後にFastAPIサーバに登録情報を送信
+    const userId = userCredential.user.uid;
+    const birthday = `${birthYear}${birthMonth}${birthDay}`;
+    const phone_number = `${phone1}-${phone2}-${phone3}`;
+
+    console.log({
+      user_id: userId,
+      birthday,
+      name,
+      phone_number,
+      region_id: townId.toString(),
+    });
+    try {
+      const res = await fetch('http://localhost:8080/api/v1/regist/userid', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          birthday,
+          name,
+          phone_number,
+          region_id: townId.toString(),
+        }),
+      });
+
+      const result = await res.json();
+      console.log("成功:", result);
+
+      if (!res.ok) {
+        console.error("APIエラー:", res.status, result);
       }
-      setError(message);
+    } catch (error) {
+      console.error("通信エラー:", error);
     }
+
+    // 成功時クリア & 画面遷移
+    setTownId('');
+    setName('');
+    setBirthYear('');
+    setBirthMonth('');
+    setBirthDay('');
+    setPhone1('');
+    setPhone2('');
+    setPhone3('');
+    setEmail('');
+    setPassword('');
+    router.push('/auth/login');
+  } catch (err: any) {
+    let message = '登録に失敗しました。';
+    if (err.code === 'auth/email-already-in-use') {
+      message = 'このメールアドレスはすでに使用されています。';
+    } else if (err.code === 'auth/invalid-email') {
+      message = 'メールアドレスの形式が正しくありません。';
+    } else if (err.code === 'auth/weak-password') {
+      message = 'パスワードが弱すぎます（6文字以上が必要です）。';
+    }
+    setError(message);
+  }
   };
 
   return (
@@ -102,11 +159,11 @@ export default function RegisterScreen() {
           onValueChange={(value) => setTownId(value)}
           mode="dropdown"
         >
-          {[...Array(10)].map((_, i) => (
+          {townIdList.map((region) => (
             <Picker.Item
-              key={i + 1}
-              label={`町会ID ${i + 1}`}
-              value={i + 1}
+              key={region.id}
+              label={region.name}
+              value={region.id}
             />
           ))}
         </Picker>
