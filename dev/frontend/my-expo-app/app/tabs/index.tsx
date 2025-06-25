@@ -145,7 +145,6 @@ export default function HomeScreen() {
       ),
     [noticesData]
   );
-  const [seenNotices, setSeenNotices] = useState<string[]>([]);
   const [noticeModalVisible, setNoticeModalVisible] = useState(false);
   const [selectedNotice, setSelectedNotice] = useState<typeof notices[0] | null>(
     null
