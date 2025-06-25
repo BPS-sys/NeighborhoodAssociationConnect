@@ -26,7 +26,8 @@ export default function LoginScreen() {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-      login();
+      const user_id = user.uid;
+      login(user_id);
       router.replace('/tabs');
     } catch (err) {
       setError('メールアドレスまたはパスワードが間違っています');

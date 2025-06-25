@@ -1,5 +1,5 @@
 // app/(tabs)/index.tsx
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,92 +12,138 @@ import {
   ScrollView,
   Image,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter, Stack } from "expo-router";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useAuth } from '../../contexts/AuthContext';
+import { RefreshControl } from "react-native";
+
 
 const { width, height } = Dimensions.get("window");
 const MODAL_MAX_HEIGHT = height * 0.6;
 
+
+type Notice = {
+  id: string;
+  title: string;
+  date: string; // yyyy-MM-dd
+  detail: string;
+  isEmergency: boolean;
+  read: boolean;
+};
+
+
+function convertMessagesToNotices(messages: any[]): Notice[] {
+  return messages.map((msg) => {
+    const sentDate = new Date(msg.Senttime);
+    const formattedDate = sentDate.toISOString().split("T")[0]; // yyyy-MM-dd形式
+
+    return {
+      id: msg.id,
+      title: msg.Title || "（タイトルなし）",
+      date: formattedDate,
+      detail: `【詳細情報】\n\n${msg.Text || "詳細情報なし"}`,
+      isEmergency: /緊急|重要|避難|災害|台風/.test(msg.Text || ""), // 例: 緊急ワード含んでるかで判定
+      read: msg.read
+    };
+  });
+}
+
+
+
+
 export default function HomeScreen() {
   const router = useRouter();
+  const [userName, setUserName] = useState("");
+  const [loadingFetchUserInfo, setLoadingFetchUserInfo] = useState(true);
+  const [loadingFetchUserMessage, setLoadingFetchUserMessage] = useState(true);
+  const [loadingFetchPosts, setLoadingFetchPosts] = useState(true);
+  const [noticesData, setNoticesData] = useState<Notice[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<{
+  id: string;
+  title: string;
+  date: string;
+  detail: string;
+  }[]>([]);
+  const { userId } = useAuth();
+  const [refreshing, setRefreshing] = useState(false);
 
-  // --- ダミーデータ ---
-  const userName = "山田 太郎";
-  const staffId = "館員番号：A12345";
+  const fetchUserInfo = async () => {
+    try {
+      const res = await fetch(`http://localhost:8080/api/v1/user/${userId}/info`);
+      const data = await res.json();
+      setUserName(data.name);
+    } catch (err) {
+      console.error("ユーザー情報の取得に失敗しました", err);
+    } finally {
+      setLoadingFetchUserInfo(false);
+    }
+  };
 
-  const noticesData = [
-    {
-      id: "1",
-      title: "明日水道管の工事をします",
-      date: "2025-06-06",
-      detail:
-        "【詳細情報】\n\n" +
-        "・工事日時：2025/06/06（金） 午前9時～午後5時\n" +
-        "・作業内容：本町一丁目～三丁目の水道管更新工事\n" +
-        "・影響範囲：該当地域は断水の可能性あり。近隣住民の皆様は水の貯め置きをお願いします。\n" +
-        "・緊急度：★★★★\n" +
-        "・担当部署：水道局工事課\n\n" +
-        "ご不便をおかけしますが、ご協力をお願いいたします。",
-      isEmergency: true,
-    },
-    {
-      id: "2",
-      title: "防災訓練を近日開催します",
-      date: "2025-06-08",
-      detail:
-        "【詳細情報】\n\n" +
-        "・訓練日時：2025/06/08（日） 午前10時～12時\n" +
-        "・集合場所：市民センター広場\n" +
-        "・内容：避難経路確認、AED使用訓練、初期消火訓練\n" +
-        "・緊急度：★★★\n" +
-        "・主催：防災対策本部\n\n" +
-        "ご家庭ごとの避難袋の確認も併せてお願いいたします。",
-      isEmergency: false,
-    },
-    {
-      id: "3",
-      title: "台風接近のため避難準備をしてください",
-      date: "2025-06-04",
-      detail:
-        "【詳細情報】\n\n" +
-        "・警報レベル：警戒レベル3（避難準備）\n" +
-        "・避難場所：〇〇小学校体育館\n" +
-        "・注意点：停電や断水の可能性あり。懐中電灯・飲料水・非常食を準備してください。\n\n" +
-        "台風情報に注意し、安全確保を最優先で行ってください。",
-      isEmergency: true,
-    },
-    {
-      id: "4",
-      title: "今週末に道路舗装工事があります",
-      date: "2025-06-07",
-      detail:
-        "【詳細情報】\n\n" +
-        "・工事日時：2025/06/07（土） 午前8時～午後6時\n" +
-        "・場所：中央通り（市役所前～駅前商店街）\n" +
-        "・通行制限：一部車線規制あり。迂回路をご利用ください。\n\n" +
-        "ご迷惑をおかけしますが、ご協力をお願いいたします。",
-      isEmergency: false,
-    },
-    {
-      id: "5",
-      title: "公民館会議室の配膳設備点検を行います",
-      date: "2025-06-05",
-      detail:
-        "【詳細情報】\n\n" +
-        "・点検日時：2025/06/05（木） 午前9時～午後3時\n" +
-        "・影響範囲：公民館会議室は終日使用不可\n" +
-        "・担当部署：公民館管理課\n\n" +
-        "ご利用の皆様にはご不便をおかけしますが、ご了承ください。",
-      isEmergency: false,
-    },
-  ];
+  const fetchUserMessages = async () => {
+    try {
+      const res = await fetch(`http://localhost:8080/api/v1/users/messages?user_id=${userId}`);
+      const messages = await res.json();
+      const convedMessages = convertMessagesToNotices(messages);
+      setNoticesData(convedMessages);
+    } catch (err) {
+      console.error("ユーザーメッセージの取得に失敗しました", err);
+    } finally {
+      setLoadingFetchUserMessage(false);
+    }
+  };
+
+  const fetchPosts = async () => {
+    try {
+      const res = await fetch("http://localhost:8080/api/v1/regions/ugyGiVvlg4fDN2afMnoe(RegionID)/news");
+      const data = await res.json();
+
+      const now = new Date();
+      const filtered = data.filter((item: any) => {
+        if (item.columns !== "イベント" || !item.starttime) return false;
+        const startDate = new Date(item.starttime);
+        return startDate.getTime() > now.getTime();
+      });
+
+      filtered.sort((a: any, b: any) => new Date(a.starttime).getTime() - new Date(b.starttime).getTime());
+
+      const formattedEvents = filtered.map((item: any, index: number) => {
+        const eventDate = new Date(item.starttime);
+        const y = eventDate.getFullYear();
+        const m = (eventDate.getMonth() + 1).toString().padStart(2, '0');
+        const d = eventDate.getDate().toString().padStart(2, '0');
+        const weekday = ["日", "月", "火", "水", "木", "金", "土"][eventDate.getDay()];
+        const formattedDate = `${y}/${m}/${d} (${weekday})`;
+
+        return {
+          id: `e${index + 1}`,
+          title: item.title,
+          date: formattedDate,
+          detail: `【詳細情報】\n\n${item.text || "詳細情報なし"}`,
+        };
+      });
+
+      setUpcomingEvents(formattedEvents);
+    } catch (error) {
+      console.error("データ取得エラー:", error);
+    } finally {
+      setLoadingFetchPosts(false);
+    }
+  };
+
+  useEffect(() => { fetchUserInfo(); }, []);
+  useEffect(() => { fetchUserMessages(); }, []);
+  useEffect(() => { fetchPosts(); }, []);
+
+  const loading = loadingFetchPosts || loadingFetchUserInfo || loadingFetchUserMessage
+
   const notices = useMemo(
     () =>
       [...noticesData].sort(
         (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
       ),
-    []
+    [noticesData]
   );
   const [seenNotices, setSeenNotices] = useState<string[]>([]);
   const [noticeModalVisible, setNoticeModalVisible] = useState(false);
@@ -105,77 +151,37 @@ export default function HomeScreen() {
     null
   );
 
-  const openNoticeModal = (notice: typeof notices[0]) => {
+  const openNoticeModal = async (notice: Notice) => {
     setSelectedNotice(notice);
-    setSeenNotices((prev) =>
-      prev.includes(notice.id) ? prev : [...prev, notice.id]
+
+    // クライアント側で即時にステート更新（UI反映）
+    setNoticesData((prev) =>
+      prev.map((n) =>
+        n.id === notice.id ? { ...n, read: true } : n
+      )
     );
+
+    // Firestore に既読フラグを書き込み
+    try {
+      await fetch("http://localhost:8080/api/v1/user/update/read", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          message_id: notice.id,
+        }),
+      });
+    } catch (error) {
+      console.error("既読状態の更新に失敗しました", error);
+    }
+
     setNoticeModalVisible(true);
   };
-  const closeNoticeModal = () => setNoticeModalVisible(false);
 
-  const upcomingEvents = [
-    {
-      id: "e1",
-      title: "地域健康ウォーキング",
-      date: "2025/05/31 (土)",
-      detail:
-        "【詳細情報】\n\n" +
-        "地域住民の健康増進を目的としたウォーキングです。\n" +
-        "集合　：市民公園入口\n" +
-        "時間　：2025/05/31（土）午前8時～10時\n" +
-        "持ち物：運動靴、飲み物、帽子\n\n" +
-        "参加無料。どなたでもご自由にご参加ください。",
-    },
-    {
-      id: "e2",
-      title: "子どもミュージックフェス",
-      date: "2025/06/01 (日)",
-      detail:
-        "【詳細情報】\n\n" +
-        "地域の子どもたちが演奏を披露する音楽イベントです。\n" +
-        "場所　：市民ホール大ホール\n" +
-        "時間　：2025/06/01（日）午後1時～午後4時\n" +
-        "出演　：小学～中学生の音楽クラブ\n\n" +
-        "入場無料。皆様のお越しをお待ちしています。",
-    },
-    {
-      id: "e3",
-      title: "地域清掃活動",
-      date: "2025/06/02 (月)",
-      detail:
-        "【詳細情報】\n\n" +
-        "地域の公園周辺を清掃します。\n" +
-        "集合　：〇〇公園正門前\n" +
-        "時間　：2025/06/02（月）午前9時～午前11時\n" +
-        "持ち物：手袋、ゴミ袋（あれば）\n\n" +
-        "ご協力いただける方はぜひご参加ください。",
-    },
-    {
-      id: "e4",
-      title: "図書館読書会",
-      date: "2025/06/03 (火)",
-      detail:
-        "【詳細情報】\n\n" +
-        "図書館司書と一緒に作品を読み解く読書会です。\n" +
-        "場所　：中央図書館会議室\n" +
-        "時間　：2025/06/03（火）午後2時～午後3時\n" +
-        "テーマ：「世界の童話」\n\n" +
-        "参加無料。要予約（電話または図書館カウンター）。",
-    },
-    {
-      id: "e5",
-      title: "公園でヨガ教室",
-      date: "2025/06/04 (水)",
-      detail:
-        "【詳細情報】\n\n" +
-        "初心者向けヨガ教室を開催します。\n" +
-        "場所　：〇〇公園グリーン広場\n" +
-        "時間　：2025/06/04（水）午前10時～午前11時\n" +
-        "持ち物：ヨガマット、飲み物\n\n" +
-        "参加無料。動きやすい服装でお越しください。",
-    },
-  ];
+
+  const closeNoticeModal = () => setNoticeModalVisible(false);
   const [eventModalVisible, setEventModalVisible] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<typeof upcomingEvents[0] | null>(
     null
@@ -187,7 +193,33 @@ export default function HomeScreen() {
   };
   const closeEventModal = () => setEventModalVisible(false);
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    console.log("qwer")
+    try {
+      setLoadingFetchUserInfo(true);
+      setLoadingFetchUserMessage(true);
+      setLoadingFetchPosts(true);
+
+      await Promise.all([
+        fetchUserInfo(),
+        fetchUserMessages(),
+        fetchPosts(),
+      ]);
+    } catch (err) {
+      console.error("更新中にエラーが発生しました", err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+
   return (
+    loading ? (
+  <View style={[styles.root, { justifyContent: 'center', alignItems: 'center' }]}>
+    <ActivityIndicator size="large" color="#007AFF" />
+  </View>
+) : (
     <View style={styles.root}>
       {/* アカウントアイコン */}
       <TouchableOpacity style={styles.accountIcon}>
@@ -196,9 +228,16 @@ export default function HomeScreen() {
 
       <Stack.Screen options={{ title: "ホーム" }} />
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent} refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={["#007AFF"]}
+          tintColor="#007AFF"
+        />
+        }>
         {/* バナー */}
-        <View style={styles.bannerContainer}>
+        {/* <View style={styles.bannerContainer}>
           <Image
             source={{
               uri: "https://via.placeholder.com/400x120.png?text=防災・防犯・イベント",
@@ -206,13 +245,12 @@ export default function HomeScreen() {
             style={styles.bannerImage}
             resizeMode="cover"
           />
-        </View>
+        </View> */}
 
         {/* ユーザー情報 */}
         <View style={[styles.section, styles.userInfoContainer]}>
           <Ionicons name="home-outline" size={24} color="#007AFF" />
           <Text style={styles.userName}>{userName} さん</Text>
-          <Text style={styles.staffId}>{staffId}</Text>
         </View>
 
         {/* 連絡事項 */}
@@ -225,7 +263,7 @@ export default function HomeScreen() {
               <TouchableOpacity
                 style={[
                   styles.noticeItem,
-                  seenNotices.includes(item.id) && styles.noticeItemSeen,
+                  item.read && styles.noticeItemSeen,
                 ]}
                 activeOpacity={0.7}
                 onPress={() => openNoticeModal(item)}
@@ -316,6 +354,28 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
+      {/* 更新ボタン */}
+      <TouchableOpacity
+              onPress={() => {
+                setLoadingFetchUserInfo(true);
+                setLoadingFetchUserMessage(true);
+                setLoadingFetchPosts(true);
+                fetchUserInfo();
+                fetchUserMessages();
+                fetchPosts();
+              }}
+              style={{
+                margin: 16,
+                backgroundColor: "#007AFF",
+                paddingVertical: 10,
+                paddingHorizontal: 16,
+                borderRadius: 8,
+                alignSelf: "center",
+              }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "bold" }}>最新の情報に更新</Text>
+      </TouchableOpacity>
+
       {/* イベントモーダル */}
       <Modal
         animationType="slide"
@@ -338,7 +398,7 @@ export default function HomeScreen() {
               style={[styles.modalButton, styles.scheduleButton]}
               onPress={() => {
                 closeEventModal();
-                router.push("/schedule");
+                router.push("/tabs/schedule");
               }}
             >
               <Text style={styles.modalButtonText}>スケジュール画面へ</Text>
@@ -350,7 +410,7 @@ export default function HomeScreen() {
         </View>
       </Modal>
     </View>
-  );
+  ));
 }
 
 const styles = StyleSheet.create({

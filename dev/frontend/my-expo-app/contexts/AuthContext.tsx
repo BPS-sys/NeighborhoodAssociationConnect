@@ -1,19 +1,30 @@
 import React, { createContext, useContext, useState } from 'react';
 
-const AuthContext = createContext<{
+interface AuthContextType {
   isLoggedIn: boolean;
-  login: () => void;
+  userId: string | null;
+  login: (userId: string) => void;
   logout: () => void;
-} | null>(null);
+}
+
+const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
-  const login = () => setIsLoggedIn(true);
-  const logout = () => setIsLoggedIn(false);
+  const login = (id: string) => {
+    setUserId(id);
+    setIsLoggedIn(true);
+  };
+
+  const logout = () => {
+    setUserId(null);
+    setIsLoggedIn(false);
+  };
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, login, logout }}>
+    <AuthContext.Provider value={{ isLoggedIn, userId, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

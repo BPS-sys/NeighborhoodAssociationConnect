@@ -106,7 +106,8 @@ def add_news(region_id: str, news: NewsIn):
         'Title': news.title,
         'Text': news.text,
         'Time': datetime.now(),
-        'columns': news.columns
+        'columns': news.columns,
+        'StartTime': news.start_time
     }
     if news.custom_id:
         doc_ref = news_ref.document(news.custom_id)
@@ -157,7 +158,8 @@ def list_news(region_id: str):
                 title=d.get('Title', ''),
                 text=d.get('Text', ''),
                 time=d.get('Time', datetime.now()),
-                columns=d.get('columns', '')
+                columns=d.get('columns', ''),
+                starttime=d.get('StartTime')  # ← 追加
             ))
         return result
     except Exception as e:
@@ -216,7 +218,8 @@ def get_user_messages(user_id: str):
                 "id": doc.id,
                 "Title": d.get("Title", ""),
                 "Text": d.get("Text", ""),
-                "Senttime": d.get("SentTime", datetime.now())
+                "Senttime": d.get("SentTime", datetime.now()),
+                "read": d.get("read", "")
             })
         return result
     except Exception as e:
@@ -230,7 +233,8 @@ def post_user_message(user_id: str, user_message: UserMessageIn):
         message_data = {
             "Title": user_message.title,
             "Text": user_message.text,
-            "SentTime": datetime.now()
+            "SentTime": datetime.now(),
+            "read": False
         }
         new_doc = messages_ref.add(message_data)[1]
         return {"message": "メッセージを送信しました", "id": new_doc.id}
@@ -238,15 +242,14 @@ def post_user_message(user_id: str, user_message: UserMessageIn):
         raise HTTPException(status_code=500, detail=str(e))
     
 @router.post("/regist/userid", summary="ユーザーIDを登録します。")
-def regist_user_id(user_id: str, birthday: str, name: str, phone_number: str, region_id: str):
-    db.collection("Users").document(user_id).set({
-        "birthday_yyyymmdd": birthday,
-        "name": name,
-        "phone_number": phone_number,
-        "RegionID": region_id
+def regist_user_id(request: UserRegistRequest):
+    db.collection("Users").document(request.user_id).set({
+        "birthday_yyyymmdd": request.birthday,
+        "name": request.name,
+        "phone_number": request.phone_number,
+        "RegionID": request.region_id
     })
-    return 200
-
+    return {"status": "success"}
 
 @router.post("/regist/region", summary="町会を登録します。")
 def regist_region(region_id: str, region_name: str):
@@ -336,5 +339,24 @@ def get_region_users(region_id: str):
             })
 
         return {"users": users}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/user/{user_id}/info", summary="ユーザー情報を取得します。")
+def get_user_infomation(user_id: str):
+    try:
+        user_info = db.collection("Users").document(user_id)
+        doc = user_info.get()
+        return doc.to_dict()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+
+@router.post("/user/update/read", summary="メッセージを既読にします。")
+def set_read(args: SetReadState):
+    try:
+        message_ref = db.collection("Users").document(args.user_id).collection("Messages").document(args.message_id)
+        message_ref.update({"read": True})
+        return {"status": "ok"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -11,6 +11,7 @@ class NewsIn(BaseModel):
     text: str
     columns: str
     custom_id: Optional[str] = None
+    start_time: Optional[datetime] = None  # ← 追加
 
 class NewsEdit(BaseModel):
     title: Optional[str] = None
@@ -23,6 +24,7 @@ class NewsOut(BaseModel):
     text: str
     time: datetime
     columns: str
+    starttime: Optional[datetime] = None  # ← 追加
 
 class ChatMessage(BaseModel):
     UserMessage: str = Field(..., description="ユーザーメッセージ")
@@ -32,3 +34,17 @@ class ChatMessage(BaseModel):
 class UserMessageIn(BaseModel):
     title: str = Field(..., description="タイトル")
     text: str = Field(..., description="メッセージ本文")
+
+class UserRegistRequest(BaseModel):
+    user_id: str = Field(..., description="ユーザーID")
+    birthday: str = Field(..., description="誕生日")
+    name: str = Field(..., description="名前")
+    phone_number: str = Field(..., description="電話番号")
+    region_id: str = Field(..., description="地域ID")
+
+class UserInfomationRequest(BaseModel):
+    user_id: str = Field(..., description="ユーザーID")
+
+class SetReadState(BaseModel):
+    user_id: str = Field(..., description="ユーザーID")
+    message_id: str = Field(..., description="メッセージID")
