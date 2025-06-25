@@ -12,4 +12,8 @@ dependencies = [
     "python-dotenv>=1.1.0",
     "uvicorn>=0.34.1",
     "qdrant-client>=1.14.2",
+    "pillow>=11.2.1",
+    "google-cloud-vision>=3.10.2",
+    "azure-cognitiveservices-vision-computervision>=0.9.1",
+    "msrest>=0.7.1",
 ]

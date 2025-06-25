@@ -17,6 +17,7 @@ export default function BulletHomeScreen({ navigation }: Props) {
   const [activeTab, setActiveTab] = useState("防犯");
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -39,7 +40,7 @@ export default function BulletHomeScreen({ navigation }: Props) {
     };
 
     fetchPosts();
-  }, []);
+  }, [refreshKey]);
 
   const filteredPosts = posts.filter(p => p.category === activeTab);
 
@@ -82,6 +83,12 @@ export default function BulletHomeScreen({ navigation }: Props) {
           )}
         />
       )}
+      <TouchableOpacity
+  style={{ marginBottom: 10, backgroundColor: '#4CAF50', padding: 10, borderRadius: 8 }}
+  onPress={() => setRefreshKey(prev => prev + 1)}
+>
+  <Text style={{ color: '#fff', textAlign: 'center', fontWeight: 'bold' }}>更新</Text>
+</TouchableOpacity>
     </View>
   );
 }
