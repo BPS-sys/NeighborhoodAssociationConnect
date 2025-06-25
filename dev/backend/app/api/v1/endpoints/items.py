@@ -1,7 +1,9 @@
 from services import MCP_Client
 from fastapi import APIRouter
 import asyncio
-from fastapi import FastAPI, HTTPException, Body, Depends
+from fastapi import FastAPI, HTTPException, Body, Depends, Request
+from fastapi.responses import JSONResponse
+import io
 from typing import List, Optional
 from datetime import datetime
 import firebase_admin
@@ -9,13 +11,19 @@ from firebase_admin import credentials, firestore
 import os
 import dotenv
 from contextlib import asynccontextmanager
+from PIL import Image
 
 from api.schema import *
 import uuid
 
+from tools.ocr.azure_vision_ocr import AzureVisionOCR
+from services.create_article import Article
+
 dotenv.load_dotenv()
 
 mcp_client = MCP_Client.ChatAgent()
+ocr_engine = AzureVisionOCR()
+article = Article()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -360,3 +368,22 @@ def set_read(args: SetReadState):
         return {"status": "ok"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/upload-binary-image")
+async def upload_binary_image(request: Request):
+    try:
+        # バイナリから画像を読み込む
+        body = await request.body()
+        image = Image.open(io.BytesIO(body))
+        if image.mode == "RGBA":
+            image = image.convert("RGB")
+        # OCR実行
+        text = ocr_engine.image_to_text(image)
+        print("OCR結果：", text)
+        article_text = article.create(text)
+        print("生成した記事：", article_text)
+        return article_text
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"OCRに失敗しました: {e}")
