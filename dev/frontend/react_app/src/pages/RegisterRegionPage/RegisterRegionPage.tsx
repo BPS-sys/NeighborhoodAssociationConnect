@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
 // バックエンドのベースURL
+// 'http://localhost:8080'
 const API_BASE_URL = 'http://0.0.0.0:8080';
 
 // API呼び出しの共通関数
