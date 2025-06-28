@@ -255,7 +255,8 @@ def regist_user_id(request: UserRegistRequest):
         "birthday_yyyymmdd": request.birthday,
         "name": request.name,
         "phone_number": request.phone_number,
-        "RegionID": request.region_id
+        "RegionID": request.region_id,
+        "address": request.address,
     })
     return {"status": "success"}
 

@@ -41,6 +41,7 @@ class UserRegistRequest(BaseModel):
     name: str = Field(..., description="名前")
     phone_number: str = Field(..., description="電話番号")
     region_id: str = Field(..., description="地域ID")
+    address: str = Field(..., description="住所")
 
 class UserInfomationRequest(BaseModel):
     user_id: str = Field(..., description="ユーザーID")
