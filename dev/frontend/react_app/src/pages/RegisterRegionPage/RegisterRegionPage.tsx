@@ -1,454 +1,324 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
-// バックエンドのベースURL
-// 'http://localhost:8080'
-const API_BASE_URL = 'http://0.0.0.0:8080';
+const API_BASE_URL = 'http://localhost:8080';
 
-// API呼び出しの共通関数
-// Reactコンポーネントの外部に定義することで、再レンダリング時の再生成を防ぎます。
-async function callAPI(endpoint, method = 'GET', data = null) {
-  const options = {
-    method: method,
-    headers: {
-      'Content-Type': 'application/json',
-    },
+async function callAPI(endpoint: string, method = 'GET', data = null) {
+  const options: any = {
+    method,
+    headers: { 'Content-Type': 'application/json' },
   };
+  if (data && method !== 'GET') options.body = JSON.stringify(data);
 
-  if (data && method !== 'GET') {
-    options.body = JSON.stringify(data);
-  } else if (data && method === 'GET' && Object.keys(data).length > 0) {
-    const params = new URLSearchParams(data).toString();
-    endpoint = `${endpoint}?${params}`;
-  }
-
-  try {
-    // API_BASE_URLをエンドポイントに付加
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
-
-    if (!response.ok) {
-      let errorDetail = '不明なエラー';
-      try {
-        const errorData = await response.json();
-        errorDetail = errorData.detail || errorData.message || JSON.stringify(errorData);
-      } catch (e) {
-        errorDetail = response.statusText;
-      }
-      alert(`APIエラー (${response.status} ${response.statusText}): ${errorDetail}`);
-      throw new Error(`HTTP error! status: ${response.status} - ${errorDetail}`);
-    }
-
-    const responseText = await response.text();
-    return responseText ? JSON.parse(responseText) : {};
-  } catch (error) {
-    console.error('API呼び出し中にエラーが発生しました:', error);
-    alert('通信エラーが発生しました。サーバーが起動しているか、ネットワーク接続を確認してください。');
-    throw error;
-  }
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+  return response.json();
 }
 
 const RegisterRegionPage = () => {
-  // 地域一覧を管理するステート
   const [regions, setRegions] = useState([]);
-  // 選択されている地域を管理するステート
   const [selectedRegionId, setSelectedRegionId] = useState('');
-  // 選択された地域の隣接地域を管理するステート
   const [nearRegions, setNearRegions] = useState([]);
-  // 新しく追加する地域IDを管理するステート
   const [newRegionIdInput, setNewRegionIdInput] = useState('');
-  // 選択された地域のニュース一覧を管理するステート
-  const [newsList, setNewsList] = useState([]);
-  // ニュース追加/編集フォームのステート
-  const [newsForm, setNewsForm] = useState({
-    title: '',
-    text: '',
-    columns: '',
-    custom_id: '',
-    isEditing: false, // 編集モードかどうかのフラグ
-    editingNewsId: null, // 編集中のニュースID
-  });
 
-  // 地域選択オプションをロードする関数
   const loadRegionOptions = useCallback(async () => {
-    try {
-      const fetchedRegions = await callAPI('/regions/view');
-      setRegions(fetchedRegions);
-    } catch (error) {
-      console.error("地域オプションの読み込みに失敗しました:", error);
-    }
+    const fetched = await callAPI('/api/v1/regions/names');
+    setRegions(fetched.map(region => `${region.name} (ID: ${region.id})`));
   }, []);
 
-  // 隣接地域をロードする関数
   const loadNearRegions = useCallback(async (regionId) => {
-    if (!regionId) {
-      setNearRegions([]);
-      return;
-    }
-    try {
-      const data = await callAPI(`/near_regions/view?region_id=${regionId}`);
-      setNearRegions(data || []); // データがない場合は空配列を設定
-    } catch (error) {
-      console.error("隣接地域の読み込みに失敗しました:", error);
-    }
+    const data = await callAPI(`/api/v1/near_regions/view?region_id=${regionId}`);
+    setNearRegions(data || []);
   }, []);
 
-  // ニュース一覧をロードする関数
-  const loadNewsList = useCallback(async (regionId) => {
-    if (!regionId) {
-      setNewsList([]);
-      return;
-    }
-    try {
-      const data = await callAPI(`/regions/${regionId}/news`);
-      setNewsList(data || []);
-    } catch (error) {
-      console.error("ニュース一覧の読み込みに失敗しました:", error);
-    }
-  }, []);
+  useEffect(() => { loadRegionOptions(); }, [loadRegionOptions]);
+  useEffect(() => { if (selectedRegionId) loadNearRegions(selectedRegionId); }, [selectedRegionId, loadNearRegions]);
 
-  // コンポーネントマウント時に地域オプションをロード
-  useEffect(() => {
-    loadRegionOptions();
-  }, [loadRegionOptions]);
-
-  // 選択された地域IDが変更されたら隣接地域とニュースをロード
-  useEffect(() => {
-    loadNearRegions(selectedRegionId);
-    loadNewsList(selectedRegionId); // ニュースもロード
-  }, [selectedRegionId, loadNearRegions, loadNewsList]);
-
-  // 地域選択時のハンドラ
-  const handleRegionChange = (e) => {
-    setSelectedRegionId(e.target.value);
-    // 地域が変更されたらフォームをリセット
-    setNewsForm({
-      title: '',
-      text: '',
-      columns: '',
-      custom_id: '',
-      isEditing: false,
-      editingNewsId: null,
-    });
-  };
-
-  // 隣接地域追加ボタンのハンドラ
   const handleAddNearRegion = async () => {
-    if (!selectedRegionId) {
-      alert('地域を選択してください。');
-      return;
-    }
-    if (!newRegionIdInput) {
-      alert('追加する地域IDを入力してください。');
-      return;
-    }
-
-    try {
-      await callAPI(`/near_regions/add?region_id=${selectedRegionId}`, 'POST', { ID: newRegionIdInput });
-      alert('隣接地域を追加しました。');
-      setNewRegionIdInput(''); // 入力フィールドをクリア
-      loadNearRegions(selectedRegionId); // 現在選択中の地域を再読み込み
-    } catch (error) {
-      console.error("隣接地域の追加に失敗しました:", error);
-    }
+    await callAPI(`/api/v1/near_regions/add?region_id=${selectedRegionId}`, 'POST', { ID: newRegionIdInput });
+    setNewRegionIdInput('');
+    loadNearRegions(selectedRegionId);
   };
 
-  // 隣接地域削除ボタンのハンドラ
   const handleDeleteNearRegion = async (docId) => {
-    if (!confirm('本当にこの隣接地域を削除しますか？')) {
-      return;
-    }
-    try {
-      await callAPI(`/near_regions/delete?region_id=${selectedRegionId}&doc_id=${docId}`, 'DELETE');
-      alert('隣接地域を削除しました。');
-      loadNearRegions(selectedRegionId); // 現在選択中の地域を再読み込み
-    } catch (error) {
-      console.error("隣接地域の削除に失敗しました:", error);
-    }
+    await callAPI(`/api/v1/near_regions/delete?region_id=${selectedRegionId}&doc_id=${docId}`, 'DELETE');
+    loadNearRegions(selectedRegionId);
   };
 
-  // ニュースフォーム入力ハンドラ
-  const handleNewsFormChange = (e) => {
-    const { name, value } = e.target;
-    setNewsForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  // ニュース追加/編集の送信ハンドラ
-  const handleSubmitNews = async (e) => {
-    e.preventDefault();
-    if (!selectedRegionId) {
-      alert('地域を選択してください。');
-      return;
-    }
-    if (!newsForm.title || !newsForm.text || !newsForm.columns) {
-      alert('ニュースのタイトル、本文、列は必須です。');
-      return;
-    }
-
-    const newsData = {
-      title: newsForm.title,
-      text: newsForm.text,
-      columns: newsForm.columns,
-    };
-
-    try {
-      if (newsForm.isEditing) {
-        // 編集モード
-        await callAPI(
-          `/regions/${selectedRegionId}/news/${newsForm.editingNewsId}`,
-          'PUT',
-          newsData
-        );
-        alert('ニュースを編集しました。');
-      } else {
-        // 追加モード
-        if (newsForm.custom_id) {
-          newsData.custom_id = newsForm.custom_id;
-        }
-        await callAPI(`/regions/${selectedRegionId}/news`, 'POST', newsData);
-        alert('ニュースを追加しました。');
-      }
-
-      // フォームをリセットしてニュースリストを再読み込み
-      setNewsForm({
-        title: '',
-        text: '',
-        columns: '',
-        custom_id: '',
-        isEditing: false,
-        editingNewsId: null,
-      });
-      loadNewsList(selectedRegionId);
-    } catch (error) {
-      console.error("ニュースの操作に失敗しました:", error);
-    }
-  };
-
-  // ニュース編集ボタンクリック時のハンドラ
-  const handleEditNews = (newsItem) => {
-    setNewsForm({
-      title: newsItem.title,
-      text: newsItem.text,
-      columns: newsItem.columns,
-      custom_id: newsItem.id, // 編集時はcustom_idも表示
-      isEditing: true,
-      editingNewsId: newsItem.id,
-    });
-    // フォームまでスクロールするなど、UXを改善する処理を追加しても良い
-  };
-
-  // ニュース削除ボタンクリック時のハンドラ
-  const handleDeleteNews = async (newsId) => {
-    if (!confirm('本当にこのニュースを削除しますか？')) {
-      return;
-    }
-    try {
-      await callAPI(`/regions/${selectedRegionId}/news/${newsId}`, 'DELETE');
-      alert('ニュースを削除しました。');
-      loadNewsList(selectedRegionId);
-    } catch (error) {
-      console.error("ニュースの削除に失敗しました:", error);
+  const styles = {
+    container: {
+      maxWidth: '1200px',
+      margin: '0 auto',
+      padding: '2rem',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      minHeight: '100vh',
+      color: '#333'
+    },
+    card: {
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      borderRadius: '20px',
+      padding: '2.5rem',
+      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+      backdropFilter: 'blur(10px)',
+      border: '1px solid rgba(255, 255, 255, 0.2)'
+    },
+    title: {
+      fontSize: '2.5rem',
+      fontWeight: '700',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      WebkitBackgroundClip: 'text',
+      WebkitTextFillColor: 'transparent',
+      backgroundClip: 'text',
+      marginBottom: '2rem',
+      textAlign: 'center'
+    },
+    inputGroup: {
+      display: 'flex',
+      gap: '1rem',
+      marginBottom: '2rem',
+      alignItems: 'center',
+      flexWrap: 'wrap'
+    },
+    input: {
+      padding: '1rem 1.5rem',
+      fontSize: '1rem',
+      border: '2px solid #e2e8f0',
+      borderRadius: '12px',
+      outline: 'none',
+      transition: 'all 0.3s ease',
+      minWidth: '200px',
+      flex: '1'
+    },
+    inputFocus: {
+      borderColor: '#667eea',
+      boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.1)',
+      transform: 'translateY(-2px)'
+    },
+    button: {
+      padding: '1rem 2rem',
+      fontSize: '1rem',
+      fontWeight: '600',
+      border: 'none',
+      borderRadius: '12px',
+      cursor: 'pointer',
+      transition: 'all 0.3s ease',
+      position: 'relative',
+      overflow: 'hidden'
+    },
+    primaryButton: {
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      color: 'white',
+      boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)'
+    },
+    secondaryButton: {
+      background: 'linear-gradient(135deg, #718096 0%, #4a5568 100%)',
+      color: 'white',
+      boxShadow: '0 4px 15px rgba(113, 128, 150, 0.4)'
+    },
+    deleteButton: {
+      background: 'linear-gradient(135deg, #fc8181 0%, #e53e3e 100%)',
+      color: 'white',
+      padding: '0.5rem 1rem',
+      fontSize: '0.875rem',
+      boxShadow: '0 4px 15px rgba(252, 129, 129, 0.4)'
+    },
+    buttonHover: {
+      transform: 'translateY(-2px)',
+      boxShadow: '0 8px 25px rgba(102, 126, 234, 0.6)'
+    },
+    section: {
+      marginBottom: '2.5rem'
+    },
+    sectionTitle: {
+      fontSize: '1.5rem',
+      fontWeight: '600',
+      color: '#2d3748',
+      marginBottom: '1.5rem',
+      position: 'relative',
+      paddingLeft: '1rem'
+    },
+    sectionTitleBefore: {
+      content: '""',
+      position: 'absolute',
+      left: '0',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      width: '4px',
+      height: '100%',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      borderRadius: '2px'
+    },
+    regionList: {
+      background: 'rgba(247, 250, 252, 0.8)',
+      borderRadius: '12px',
+      padding: '1.5rem',
+      maxHeight: '300px',
+      overflowY: 'auto',
+      border: '1px solid rgba(226, 232, 240, 0.6)'
+    },
+    regionItem: {
+      padding: '0.75rem 1rem',
+      borderRadius: '8px',
+      marginBottom: '0.5rem',
+      background: 'white',
+      border: '1px solid rgba(226, 232, 240, 0.4)',
+      transition: 'all 0.2s ease',
+      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+    },
+    regionItemHover: {
+      transform: 'translateX(4px)',
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+      borderColor: '#667eea'
+    },
+    nearRegionItem: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '1rem 1.5rem',
+      marginBottom: '0.75rem',
+      background: 'white',
+      borderRadius: '12px',
+      border: '1px solid rgba(226, 232, 240, 0.6)',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+      transition: 'all 0.3s ease'
+    },
+    nearRegionItemHover: {
+      transform: 'translateY(-2px)',
+      boxShadow: '0 8px 25px rgba(0, 0, 0, 0.15)'
+    },
+    nearRegionText: {
+      fontSize: '1.1rem',
+      fontWeight: '500',
+      color: '#2d3748'
+    },
+    addSection: {
+      background: 'rgba(237, 242, 247, 0.5)',
+      borderRadius: '16px',
+      padding: '2rem',
+      border: '2px dashed rgba(102, 126, 234, 0.3)',
+      transition: 'all 0.3s ease'
+    },
+    addSectionHover: {
+      borderColor: '#667eea',
+      background: 'rgba(237, 242, 247, 0.8)'
     }
   };
 
   return (
-    <div className="bg-gray-100 p-8 min-h-screen">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">地域共生管理ダッシュボード</h1>
-      </header>
+    <div style={styles.container}>
+      <div style={styles.card}>
+        <h1 style={styles.title}>町会（地域）登録ページ</h1>
 
-      <main className="max-w-4xl mx-auto space-y-8">
-        {/* 隣接地域管理セクション */}
-        <section className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">隣接地域管理</h2>
-          {/* ここに地域IDのリストを直接表示する例を追加 */}
-          <div className="mb-4">
-            <h3 className="text-lg font-medium mb-2">地域IDの一覧:</h3>
-            {regions.length > 0 ? (
-              <ul className="list-disc list-inside">
-                {regions.map((region) => (
-                  <li key={region}>{region}</li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-gray-600">地域IDがありません。</p>
-            )}
+        <div style={styles.inputGroup}>
+          <input
+            type="text"
+            placeholder="地域ID"
+            value={selectedRegionId}
+            onChange={(e) => setSelectedRegionId(e.target.value)}
+            style={styles.input}
+            onFocus={(e) => Object.assign(e.target.style, styles.inputFocus)}
+            onBlur={(e) => {
+              e.target.style.borderColor = '#e2e8f0';
+              e.target.style.boxShadow = 'none';
+              e.target.style.transform = 'none';
+            }}
+          />
+          <button 
+            onClick={loadRegionOptions} 
+            style={{...styles.button, ...styles.secondaryButton}}
+            onMouseEnter={(e) => Object.assign(e.target.style, styles.buttonHover)}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'none';
+              e.target.style.boxShadow = '0 4px 15px rgba(113, 128, 150, 0.4)';
+            }}
+          >
+            地域一覧更新
+          </button>
+        </div>
+
+        <div style={styles.section}>
+          <h2 style={{...styles.sectionTitle, '::before': styles.sectionTitleBefore}}>
+            <span style={{borderLeft: '4px solid #667eea', paddingLeft: '1rem'}}>地域一覧</span>
+          </h2>
+          <div style={styles.regionList}>
+            {regions.map(region => (
+              <div 
+                key={region} 
+                style={styles.regionItem}
+                onMouseEnter={(e) => Object.assign(e.target.style, styles.regionItemHover)}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'none';
+                  e.target.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
+                  e.target.style.borderColor = 'rgba(226, 232, 240, 0.4)';
+                }}
+              >
+                {region}
+              </div>
+            ))}
           </div>
-          <div className="mb-4">
-            {/*<select
-              className="border p-2 rounded w-64 mr-2"
-              value={selectedRegionId}
-              onChange={handleRegionChange}
-            >
-              <option value="">地域を選択してください</option>
-              {regions.map((region) => (
-                <option key={region} value={region}>
-                  {region}
-                </option>
-              ))}
-            </select>*/}
+        </div>
+
+        <div style={{...styles.addSection, marginBottom: '2.5rem'}}>
+          <div style={styles.inputGroup}>
             <input
               type="text"
-              placeholder="編集する地域のID"
-              className="border p-2 rounded w-64 mr-2"
-              value={selectedRegionId}
-              onChange={handleRegionChange}
-            />
-            <button
-              onClick={loadRegionOptions}
-              className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
-            >
-              更新
-            </button>
-          </div>
-
-          <div className="mb-4">
-            <input
-              type="text"
-              placeholder="追加する隣接地域のID"
-              className="border p-2 rounded w-64 mr-2"
+              placeholder="追加する隣接地域ID"
               value={newRegionIdInput}
               onChange={(e) => setNewRegionIdInput(e.target.value)}
+              style={styles.input}
+              onFocus={(e) => Object.assign(e.target.style, styles.inputFocus)}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#e2e8f0';
+                e.target.style.boxShadow = 'none';
+                e.target.style.transform = 'none';
+              }}
             />
-            <button
-              onClick={handleAddNearRegion}
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            <button 
+              onClick={handleAddNearRegion} 
+              style={{...styles.button, ...styles.primaryButton}}
+              onMouseEnter={(e) => Object.assign(e.target.style, styles.buttonHover)}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'none';
+                e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)';
+              }}
             >
               隣接地域を追加
             </button>
           </div>
+        </div>
 
-          <div className="space-y-2">
-            <h3 className="text-lg font-medium mb-2">選択中の地域の隣接地域: {selectedRegionId || 'なし'}</h3>
-            {nearRegions.length > 0 ? (
-              nearRegions.map((item) => (
-                <div key={item.id} className="flex items-center justify-between bg-gray-50 p-3 rounded">
-                  <span>{item.data.ID} (ID: {item.id})</span>
-                  <button
-                    onClick={() => handleDeleteNearRegion(item.id)}
-                    className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-                  >
-                    削除
-                  </button>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-600">隣接地域はありません。</p>
-            )}
-          </div>
-        </section>
-
-        {/* ニュース管理セクション */}
-        <section className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">ニュース管理 ({selectedRegionId || '地域未選択'})</h2>
-
-          {selectedRegionId ? (
-            <>
-              {/* ニュース追加/編集フォーム */}
-              <form onSubmit={handleSubmitNews} className="space-y-4 mb-6">
-                <div>
-                  <label htmlFor="title" className="block text-sm font-medium text-gray-700">タイトル</label>
-                  <input
-                    type="text"
-                    id="title"
-                    name="title"
-                    value={newsForm.title}
-                    onChange={handleNewsFormChange}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                    required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="text" className="block text-sm font-medium text-gray-700">本文</label>
-                  <textarea
-                    id="text"
-                    name="text"
-                    value={newsForm.text}
-                    onChange={handleNewsFormChange}
-                    rows="4"
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                    required
-                  ></textarea>
-                </div>
-                <div>
-                  <label htmlFor="columns" className="block text-sm font-medium text-gray-700">列</label>
-                  <input
-                    type="text"
-                    id="columns"
-                    name="columns"
-                    value={newsForm.columns}
-                    onChange={handleNewsFormChange}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                    required
-                  />
-                </div>
-                {!newsForm.isEditing && ( // 編集モードでなければカスタムIDフィールドを表示
-                  <div>
-                    <label htmlFor="custom_id" className="block text-sm font-medium text-gray-700">カスタムID (任意)</label>
-                    <input
-                      type="text"
-                      id="custom_id"
-                      name="custom_id"
-                      value={newsForm.custom_id}
-                      onChange={handleNewsFormChange}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                      placeholder="指定しない場合自動生成"
-                    />
-                  </div>
-                )}
-                <button
-                  type="submit"
-                  className={`${newsForm.isEditing ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-500 hover:bg-blue-600'} text-white px-4 py-2 rounded`}
-                >
-                  {newsForm.isEditing ? 'ニュースを更新' : 'ニュースを追加'}
-                </button>
-                {newsForm.isEditing && (
-                  <button
-                    type="button"
-                    onClick={() => setNewsForm({ title: '', text: '', columns: '', custom_id: '', isEditing: false, editingNewsId: null })}
-                    className="ml-2 bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
-                  >
-                    キャンセル
-                  </button>
-                )}
-              </form>
-
-              {/* ニュース一覧 */}
-              <h3 className="text-lg font-medium mb-2">ニュース一覧</h3>
-              {newsList.length > 0 ? (
-                <div className="space-y-4">
-                  {newsList.map((newsItem) => (
-                    <div key={newsItem.id} className="bg-gray-50 p-4 rounded shadow-sm">
-                      <h4 className="font-semibold text-lg">{newsItem.title}</h4>
-                      <p className="text-gray-700 text-sm mb-2">ID: {newsItem.id} | Columns: {newsItem.columns}</p>
-                      <p className="text-gray-800">{newsItem.text}</p>
-                      <p className="text-gray-500 text-xs mt-1">
-                        最終更新: {new Date(newsItem.time).toLocaleString('ja-JP')}
-                      </p>
-                      <div className="mt-3 space-x-2">
-                        <button
-                          onClick={() => handleEditNews(newsItem)}
-                          className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 text-sm"
-                        >
-                          編集
-                        </button>
-                        <button
-                          onClick={() => handleDeleteNews(newsItem.id)}
-                          className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-sm"
-                        >
-                          削除
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-600">この地域にはニュースがありません。</p>
-              )}
-            </>
-          ) : (
-            <p className="text-gray-600">地域を選択すると、ニュースの管理ができます。</p>
-          )}
-        </section>
-      </main>
+        <div style={styles.section}>
+          <h2 style={{...styles.sectionTitle, '::before': styles.sectionTitleBefore}}>
+            <span style={{borderLeft: '4px solid #667eea', paddingLeft: '1rem'}}>隣接地域一覧</span>
+          </h2>
+          {nearRegions.map(item => (
+            <div 
+              key={item.id} 
+              style={styles.nearRegionItem}
+              onMouseEnter={(e) => Object.assign(e.target.style, styles.nearRegionItemHover)}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'none';
+                e.target.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)';
+              }}
+            >
+              <span style={styles.nearRegionText}>{item.data.ID}</span>
+              <button 
+                onClick={() => handleDeleteNearRegion(item.id)} 
+                style={{...styles.button, ...styles.deleteButton}}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 8px 25px rgba(252, 129, 129, 0.6)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'none';
+                  e.target.style.boxShadow = '0 4px 15px rgba(252, 129, 129, 0.4)';
+                }}
+              >
+                削除
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };
