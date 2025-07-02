@@ -6,9 +6,17 @@ import {
   TextInput,
   StyleSheet,
   TouchableOpacity,
+  SafeAreaView,
+  StatusBar,
+  Animated,
+  Dimensions,
+  Platform,
 } from "react-native";
+import { useAuth } from '../../contexts/AuthContext';
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from 'expo-linear-gradient';
 
-// ✅ ScrollView を型として使う場合はこれでOK
+const { width } = Dimensions.get('window');
 const scrollViewRef = useRef<ScrollView>(null);
 
 type Message = {
@@ -21,6 +29,7 @@ export default function ChatScreen() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [input, setInput] = useState("");
+  const { RegionID, regionName, userName } = useAuth();
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -41,6 +50,7 @@ export default function ChatScreen() {
     setTimeout(() => {
       scrollViewRef.current?.scrollToEnd({ animated: true });
     }, 100);
+
     try {
       const response = await fetch("http://localhost:8080/api/v1/Chat", {
         method: "POST",
@@ -49,13 +59,12 @@ export default function ChatScreen() {
         },
         body: JSON.stringify({
           UserMessage: input,
-          RegionID: "ugyGiVvlg4fDN2afMnoe",
-          RegionName: "滝川地域活動協議会",
+          RegionID: RegionID,
+          RegionName: regionName,
         }),
       });
 
       const data = await response.json();
-      
       
       const replyMessage = {
         sender: "ai",
@@ -87,68 +96,134 @@ export default function ChatScreen() {
     }
   };
 
+  const TypingIndicator = () => (
+    <View style={styles.typingContainer}>
+      <View style={styles.aiAvatar}>
+        <Ionicons name="robot-outline" size={14} color="#ffffff" />
+      </View>
+      <View style={styles.typingBubble}>
+        <View style={styles.typingDots}>
+          <View style={[styles.dot, styles.dot1]} />
+          <View style={[styles.dot, styles.dot2]} />
+          <View style={[styles.dot, styles.dot3]} />
+        </View>
+      </View>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>チャット画面</Text>
+      <StatusBar barStyle="light-content" backgroundColor="#667eea" />
+      
+      {/* ヘッダーグラデーション */}
+      <LinearGradient
+        colors={['#667eea', '#764ba2']}
+        style={styles.headerGradient}
+      >
+        <View style={styles.headerContent}>
+          <View style={styles.aiHeaderAvatar}>
+            <Ionicons name="robot-outline" size={20} color="#ffffff" />
+          </View>
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.headerTitle}>AIアシスタント</Text>
+            <Text style={styles.headerSubtitle}>{regionName || 'チャット'}</Text>
+          </View>
+          <View style={styles.onlineIndicator} />
+        </View>
+      </LinearGradient>
 
+      {/* チャットエリア */}
       <ScrollView
         ref={scrollViewRef}
         style={styles.chatArea}
-        contentContainerStyle={{ padding: 10 }}
+        contentContainerStyle={styles.chatContent}
+        showsVerticalScrollIndicator={false}
       >
+        {messages.length === 0 && (
+          <View style={styles.emptyState}>
+            <View style={styles.emptyIconContainer}>
+              <Ionicons name="chatbubble-outline" size={48} color="#94a3b8" />
+            </View>
+            <Text style={styles.emptyStateTitle}>チャットを始めましょう</Text>
+            <Text style={styles.emptyStateSubtitle}>
+              何かお手伝いできることはありますか？
+            </Text>
+          </View>
+        )}
+
         {messages.map((msg, index) => (
           <View
             key={index}
-            style={{
-              flexDirection: msg.sender === "user" ? "row-reverse" : "row",
-              alignItems: "flex-end",
-              marginVertical: 4,
-            }}
+            style={[
+              styles.messageContainer,
+              msg.sender === "user" ? styles.userMessageContainer : styles.aiMessageContainer
+            ]}
           >
             {msg.sender === "ai" && (
-              <Text style={{ fontSize: 20, marginRight: 5 }}>🤖</Text>
+              <View style={styles.aiAvatar}>
+                <Ionicons name="robot-outline" size={14} color="#ffffff" />
+              </View>
             )}
 
             <View
               style={[
                 styles.messageBubble,
-                msg.sender === "user" ? styles.user : styles.ai,
+                msg.sender === "user" ? styles.userBubble : styles.aiBubble,
               ]}
             >
-              <Text style={{ color: msg.sender === "user" ? "#fff" : "#000" }}>
+              <Text style={[
+                styles.messageText,
+                msg.sender === "user" ? styles.userText : styles.aiText
+              ]}>
                 {msg.text}
               </Text>
-              <Text style={{ fontSize: 10, color: "#999", marginTop: 2 }}>
+              <Text style={[
+                styles.timestamp,
+                msg.sender === "user" ? styles.userTimestamp : styles.aiTimestamp
+              ]}>
                 {msg.timestamp}
               </Text>
             </View>
           </View>
         ))}
 
-        {/* 👇 正しくここに表示！ */}
-        {isTyping && (
-          <Text style={{ marginLeft: 10, color: "#666", fontStyle: "italic" }}>
-            AIが入力中...
-          </Text>
-        )}
+        {isTyping && <TypingIndicator />}
       </ScrollView>
 
-      {/* 🔽これをループの外に！ */}
-      {isTyping && <Text>AIが入力中...</Text>}
-
-      <View style={styles.inputArea}>
-        <TextInput
-          style={styles.input}
-          value={input}
-          onChangeText={setInput}
-          placeholder="メッセージを入力"
-          returnKeyType="send" // スマホで送信ボタン表示
-          onSubmitEditing={handleSend} // Enter押したら送信
-          blurOnSubmit={false} // キーボード閉じない
-        />
-        <TouchableOpacity onPress={handleSend} style={styles.sendButton}>
-          <Text style={styles.sendIcon}>➤</Text>
-        </TouchableOpacity>
+      {/* 入力エリア */}
+      <View style={styles.inputContainer}>
+        <View style={styles.inputWrapper}>
+          <TextInput
+            style={styles.input}
+            value={input}
+            onChangeText={setInput}
+            placeholder="メッセージを入力..."
+            placeholderTextColor="#94a3b8"
+            returnKeyType="send"
+            onSubmitEditing={handleSend}
+            blurOnSubmit={false}
+            multiline
+          />
+          <TouchableOpacity
+            onPress={handleSend}
+            style={[
+              styles.sendButton,
+              input.trim() ? styles.sendButtonActive : styles.sendButtonInactive
+            ]}
+            disabled={!input.trim()}
+          >
+            <LinearGradient
+              colors={input.trim() ? ['#667eea', '#764ba2'] : ['#e2e8f0', '#e2e8f0']}
+              style={styles.sendButtonGradient}
+            >
+              <Ionicons 
+                name="send" 
+                size={18} 
+                color={input.trim() ? "#ffffff" : "#94a3b8"} 
+              />
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -157,53 +232,240 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f1f1f1",
+    backgroundColor: "#f8fafc",
   },
-  title: {
-    textAlign: "center",
-    marginVertical: 10,
-    fontSize: 16,
-    fontWeight: "bold",
+
+  // ヘッダー
+  headerGradient: {
+    paddingTop: 20,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
   },
-  chatArea: {
-    flex: 1,
-  },
-  messageBubble: {
-    maxWidth: "70%",
-    padding: 10,
-    borderRadius: 12,
-  },
-  user: {
-    backgroundColor: "#002F6C",
-    alignSelf: "flex-end",
-  },
-  ai: {
-    backgroundColor: "#ddd",
-    alignSelf: "flex-start",
-  },
-  inputArea: {
+  headerContent: {
     flexDirection: "row",
-    padding: 10,
-    borderTopWidth: 1,
-    borderColor: "#ccc",
-    backgroundColor: "#fff",
     alignItems: "center",
+    justifyContent: "space-between",
   },
-  input: {
-    flex: 1,
-    backgroundColor: "#eee",
-    borderRadius: 20,
-    paddingHorizontal: 15,
+  aiHeaderAvatar: {
+    width: 40,
     height: 40,
-    marginRight: 10,
-  },
-  sendButton: {
-    padding: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: "center",
     alignItems: "center",
   },
-  sendIcon: {
-    fontSize: 22,
-    color: "#007AFF",
+  headerTextContainer: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  headerTitle: {
+    color: "#ffffff",
+    fontSize: 20,
+    fontWeight: "700",
+  },
+  headerSubtitle: {
+    color: "rgba(255, 255, 255, 0.8)",
+    fontSize: 14,
+    marginTop: 2,
+  },
+  onlineIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: "#10b981",
+  },
+  userGreeting: {
+    alignItems: "center",
+    marginTop: 16,
+  },
+  greetingText: {
+    fontSize: 16,
+    color: "rgba(255, 255, 255, 0.9)",
+    fontWeight: "500",
+  },
+
+  // チャットエリア
+  chatArea: {
+    flex: 1,
+  },
+  chatContent: {
+    padding: 16,
+    paddingBottom: 20,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 60,
+  },
+  emptyIconContainer: {
+    backgroundColor: '#f1f5f9',
+    borderRadius: 32,
+    width: 80,
+    height: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  emptyStateTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1e293b",
+    marginBottom: 8,
+  },
+  emptyStateSubtitle: {
+    fontSize: 16,
+    color: "#64748b",
+    textAlign: "center",
+  },
+
+  // メッセージ
+  messageContainer: {
+    flexDirection: "row",
+    marginVertical: 8,
+    alignItems: "flex-end",
+  },
+  userMessageContainer: {
+    flexDirection: "row-reverse",
+  },
+  aiMessageContainer: {
+    flexDirection: "row",
+  },
+  aiAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#667eea",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8,
+    marginBottom: 2,
+  },
+  messageBubble: {
+    maxWidth: width * 0.75,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  userBubble: {
+    backgroundColor: "#ffffff",
+    borderBottomRightRadius: 4,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  aiBubble: {
+    backgroundColor: "#ffffff",
+    borderBottomLeftRadius: 4,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  messageText: {
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  userText: {
+    color: "#1e293b",
+  },
+  aiText: {
+    color: "#1e293b",
+  },
+  timestamp: {
+    fontSize: 11,
+    marginTop: 4,
+    alignSelf: "flex-end",
+  },
+  userTimestamp: {
+    color: "#94a3b8",
+  },
+  aiTimestamp: {
+    color: "#94a3b8",
+  },
+
+  // タイピングインジケーター
+  typingContainer: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    marginVertical: 8,
+  },
+  typingBubble: {
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 20,
+    borderBottomLeftRadius: 4,
+    marginLeft: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  typingDots: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#94a3b8",
+    marginHorizontal: 2,
+  },
+  dot1: {},
+  dot2: {},
+  dot3: {},
+
+  // 入力エリア
+  inputContainer: {
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  inputWrapper: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    backgroundColor: "#f8fafc",
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    maxHeight: 100,
+    color: "#1e293b",
+  },
+  sendButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginLeft: 8,
+    overflow: 'hidden',
+  },
+  sendButtonActive: {},
+  sendButtonInactive: {},
+  sendButtonGradient: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

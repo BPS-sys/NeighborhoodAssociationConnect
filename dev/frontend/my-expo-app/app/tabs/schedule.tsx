@@ -8,26 +8,35 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ActivityIndicator,
+  StatusBar,
+  Animated,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from '../../contexts/AuthContext';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from "expo-router";
 
 const WEEK_DAYS = ["日", "月", "火", "水", "木", "金", "土"];
 const { width } = Dimensions.get("window");
-const CELL_SIZE = (width - 32) / 7;
+const CELL_SIZE = (width - 40) / 7;
 
 export default function ScheduleScreen() {
+  const router = useRouter();
   const today = new Date();
   const currentYear = today.getFullYear();
-  const currentMonth = today.getMonth(); // 0-11
+  const currentMonth = today.getMonth();
 
-  const [eventsByDate, setEventsByDate] = useState<Record<number, { title: string; detail: string; starttime: string }[]>>({});
+  const [eventsByDate, setEventsByDate] = useState<Record<string, { title: string; detail: string; starttime: string }[]>>({});
   const [loading, setLoading] = useState(true);
-  
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const { RegionID, userName, regionName } = useAuth();
 
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const res = await fetch("http://localhost:8080/api/v1/regions/ugyGiVvlg4fDN2afMnoe(RegionID)/news");
+        const res = await fetch(`http://localhost:8080/api/v1/regions/${RegionID}/news`);
         const data = await res.json();
 
         const now = new Date();
@@ -39,23 +48,29 @@ export default function ScheduleScreen() {
           return startDate >= startOfMonth;
         });
 
-
         const byDate: Record<string, { title: string; detail: string; starttime: string }[]> = {};
-          for (const item of filtered) {
-            const date = new Date(item.starttime);
-            const key = date.toISOString().split("T")[0]; // yyyy-MM-dd
+        for (const item of filtered) {
+          const date = new Date(item.starttime);
+          const key = date.toISOString().split("T")[0];
 
-            if (!byDate[key]) {
-              byDate[key] = [];
-            }
-
-            byDate[key].push({
-              title: item.title ?? "イベント",
-              detail: item.body ?? "",
-              starttime: item.starttime,
-            });
+          if (!byDate[key]) {
+            byDate[key] = [];
           }
-          setEventsByDate(byDate);
+
+          byDate[key].push({
+            title: item.title ?? "イベント",
+            detail: item.body ?? "",
+            starttime: item.starttime,
+          });
+        }
+        setEventsByDate(byDate);
+        
+        // フェードインアニメーション
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }).start();
       } catch (err) {
         console.error("イベント取得失敗:", err);
       } finally {
@@ -64,7 +79,7 @@ export default function ScheduleScreen() {
     };
 
     fetchEvents();
-  }, []);
+  }, [RegionID]);
 
   const months = useMemo(() => {
     const arr: { year: number; month: number }[] = [];
@@ -77,8 +92,6 @@ export default function ScheduleScreen() {
     return arr;
   }, [currentYear, currentMonth]);
 
-  const [selectedDate, setSelectedDate] = useState<number | null>(null);
-
   const makeCells = (year: number, month: number) => {
     const first = new Date(year, month, 1).getDay();
     const last = new Date(year, month + 1, 0).getDate();
@@ -89,188 +102,434 @@ export default function ScheduleScreen() {
     return arr;
   };
 
-  return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView style={styles.calendarWrapper}>
-        {months.map(({ year, month }) => {
-          const cells = makeCells(year, month);
-          return (
-            <View key={`${year}-${month}`} style={styles.monthContainer}>
-              <Text style={[styles.monthHeader, { height: CELL_SIZE * 0.8 }]}>
-                {year}年 {month + 1}月
-              </Text>
-              <View style={[styles.weekRow, { height: CELL_SIZE * 0.6 }]}>
-                {WEEK_DAYS.map((w, i) => (
-                  <Text
-                    key={i}
-                    style={[
-                      styles.weekDay,
-                      { width: CELL_SIZE, lineHeight: CELL_SIZE * 0.6 },
-                      i === 0 && { color: "#d00" },
-                    ]}
-                  >
-                    {w}
-                  </Text>
-                ))}
-              </View>
-              <View style={styles.daysContainer}>
-                {cells.map((d, idx) => {
-                  const isToday =
-                    d === today.getDate() &&
-                    month === today.getMonth() &&
-                    year === today.getFullYear();
-                  const hasEvent = d != null && eventsByDate[`${year}-${(month + 1).toString().padStart(2, "0")}-${d.toString().padStart(2, "0")}`];
-                  return (
-                    <TouchableOpacity
-                      key={idx}
-                      style={[
-                        styles.dayCell,
-                        { width: CELL_SIZE, height: CELL_SIZE },
-                        isToday && styles.todayCell,
-                        selectedDate === d && styles.selectedCell,
-                      ]}
-                      activeOpacity={d ? 0.6 : 1}
-                      onPress={() => d && setSelectedDate(`${year}-${(month + 1).toString().padStart(2, "0")}-${d.toString().padStart(2, "0")}`)}
-                    >
-                      <Text
-                        style={[
-                          styles.dayText,
-                          idx % 7 === 0 && { color: "#d00" },
-                        ]}
-                      >
-                        {d ?? ""}
-                      </Text>
-                      {hasEvent && (
-                        <Ionicons
-                          name="star"
-                          size={CELL_SIZE * 0.4}
-                          color="#fbc02d"
-                          style={styles.starIcon}
-                        />
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-          );
-        })}
-      </ScrollView>
+  const getEventCount = (dateKey: string) => {
+    return eventsByDate[dateKey]?.length || 0;
+  };
 
-      <View style={styles.eventListContainer}>
-        {loading ? (
-          <ActivityIndicator size="large" color="#888" style={{ marginTop: 20 }} />
-        ) : selectedDate && eventsByDate[selectedDate] ? (
-          <ScrollView>
-            {eventsByDate[selectedDate].map((ev, i) => (
-            <View key={i} style={styles.eventItem}>
-              <Text style={styles.eventTitle}>
-                {ev.title}
-              </Text>
-              <Text style={styles.eventDetail}>{ev.detail}</Text>
-              <Text style={styles.eventTime}>
-                開始日時: {new Date(ev.starttime).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}
-              </Text>
-            </View>
-          ))}
+  const formatSelectedDate = (dateKey: string) => {
+    const date = new Date(dateKey);
+    return date.toLocaleDateString('ja-JP', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'long'
+    });
+  };
+
+  return (
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      
+      {/* ヘッダーグラデーション */}
+      <LinearGradient
+        colors={['#667eea', '#764ba2']}
+        style={styles.headerGradient}
+      >
+
+        {/* ユーザー情報 */}
+        <View style={styles.userInfoContainer}>
+          <View style={styles.locationContainer}>
+            <Ionicons name="location-outline" size={20} color="#ffffff" />
+            <Text style={styles.regionName}>{regionName}</Text>
+          </View>
+          <View style={styles.titleContainer}>
+            <Ionicons name="calendar" size={24} color="#ffffff" />
+            <Text style={styles.headerTitle}>スケジュール</Text>
+          </View>
+        </View>
+      </LinearGradient>
+
+      <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
+        {/* カレンダー部分 */}
+        <View style={styles.calendarSection}>
+          <ScrollView 
+            style={styles.calendarWrapper}
+            showsVerticalScrollIndicator={false}
+          >
+            {months.map(({ year, month }) => {
+              const cells = makeCells(year, month);
+              return (
+                <View key={`${year}-${month}`} style={styles.monthContainer}>
+                  <View style={styles.monthHeader}>
+                    <Text style={styles.monthTitle}>
+                      {year}年 {month + 1}月
+                    </Text>
+                  </View>
+                  
+                  <View style={styles.weekHeader}>
+                    {WEEK_DAYS.map((w, i) => (
+                      <View key={i} style={[styles.weekDayContainer, { width: CELL_SIZE }]}>
+                        <Text style={[
+                          styles.weekDayText,
+                          i === 0 && styles.sundayText,
+                          i === 6 && styles.saturdayText
+                        ]}>
+                          {w}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                  
+                  <View style={styles.daysGrid}>
+                    {cells.map((d, idx) => {
+                      const dateKey = d ? `${year}-${(month + 1).toString().padStart(2, "0")}-${d.toString().padStart(2, "0")}` : null;
+                      const isToday = d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+                      const eventCount = dateKey ? getEventCount(dateKey) : 0;
+                      const isSelected = selectedDate === dateKey;
+                      const isWeekend = idx % 7 === 0 || idx % 7 === 6;
+                      
+                      return (
+                        <TouchableOpacity
+                          key={idx}
+                          style={[
+                            styles.dayCell,
+                            { width: CELL_SIZE, height: CELL_SIZE },
+                            isToday && styles.todayCell,
+                            isSelected && styles.selectedCell,
+                            eventCount > 0 && styles.eventCell,
+                          ]}
+                          activeOpacity={d ? 0.7 : 1}
+                          onPress={() => d && dateKey && setSelectedDate(dateKey)}
+                          disabled={!d}
+                        >
+                          {d && (
+                            <>
+                              <Text style={[
+                                styles.dayText,
+                                isToday && styles.todayText,
+                                isSelected && styles.selectedText,
+                                isWeekend && !isToday && !isSelected && styles.weekendText,
+                              ]}>
+                                {d}
+                              </Text>
+                              {eventCount > 0 && (
+                                <View style={styles.eventIndicator}>
+                                  <Text style={styles.eventCount}>
+                                    {eventCount > 9 ? '9+' : eventCount}
+                                  </Text>
+                                </View>
+                              )}
+                            </>
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              );
+            })}
           </ScrollView>
-        ) : (
-          <Text style={styles.eventPlaceholder}>
-            星マークの日付をタップしてイベントを確認
-          </Text>
-        )}
-      </View>
-    </SafeAreaView>
+        </View>
+
+        {/* イベント詳細部分 */}
+        <View style={styles.eventSection}>
+          <View style={styles.eventHeader}>
+            <Ionicons name="list" size={20} color="#667eea" />
+            <Text style={styles.eventHeaderTitle}>
+              {selectedDate ? formatSelectedDate(selectedDate) : 'イベント詳細'}
+            </Text>
+          </View>
+          
+          <ScrollView style={styles.eventList} showsVerticalScrollIndicator={false}>
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#667eea" />
+                <Text style={styles.loadingText}>イベントを読み込み中...</Text>
+              </View>
+            ) : selectedDate && eventsByDate[selectedDate] ? (
+              eventsByDate[selectedDate].map((ev, i) => (
+                <View key={i} style={styles.eventCard}>
+                  <View style={styles.eventCardHeader}>
+                    <View style={styles.eventTypeChip}>
+                      <Ionicons name="star" size={12} color="#f59e0b" />
+                      <Text style={styles.eventTypeText}>イベント</Text>
+                    </View>
+                    <Text style={styles.eventTime}>
+                      {new Date(ev.starttime).toLocaleTimeString("ja-JP", { 
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        timeZone: "Asia/Tokyo" 
+                      })}
+                    </Text>
+                  </View>
+                  <Text style={styles.eventTitle}>{ev.title}</Text>
+                  {ev.detail && (
+                    <Text style={styles.eventDetail}>{ev.detail}</Text>
+                  )}
+                </View>
+              ))
+            ) : (
+              <View style={styles.emptyState}>
+                <Ionicons name="calendar-outline" size={48} color="#d1d5db" />
+                <Text style={styles.emptyStateTitle}>イベントがありません</Text>
+                <Text style={styles.emptyStateSubtitle}>
+                  {selectedDate ? '選択した日にはイベントがありません' : 'カレンダーから日付を選択してください'}
+                </Text>
+              </View>
+            )}
+          </ScrollView>
+        </View>
+      </Animated.View>
+    </View>
   );
 }
 
-
-
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#f5f5f5" },
-
-  eventTime: {
-    fontSize: 12,
-    color: "#888",
-    marginTop: 4,
+  container: {
+    flex: 1,
+    backgroundColor: "#f8fafc",
+  },
+  
+  // ヘッダー
+  headerGradient: {
+    // paddingTop: Platform.OS === "ios" ? 50 : 30,
+    paddingBottom: 10,
+    paddingHorizontal: 20,
+  },
+  
+  accountIcon: {
+    position: "absolute",
+    top: Platform.OS === "ios" ? 50 : 30,
+    right: 20,
+    zIndex: 10,
+  },
+  accountIconContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
+    padding: 8,
   },
 
+  userInfoContainer: { 
+    alignItems: "center",
+    marginTop: 20,
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  regionName: { 
+    fontSize: 16, 
+    color: "#ffffff", 
+    marginLeft: 4,
+    opacity: 0.9,
+  },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#ffffff",
+    marginLeft: 8,
+  },
+  userName: { 
+    fontSize: 16, 
+    color: "#ffffff",
+    opacity: 0.9,
+  },
+
+  content: {
+    flex: 1,
+  },
+  calendarSection: {
+    backgroundColor: "#fff",
+    maxHeight: "60%",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+  },
   calendarWrapper: {
     flexGrow: 0,
-    maxHeight: Dimensions.get("window").height * 0.6,
-    backgroundColor: "#fff",
   },
   monthContainer: {
-    marginVertical: 8,
-    alignItems: "center",
+    marginVertical: 12,
+    paddingHorizontal: 20,
   },
   monthHeader: {
-    backgroundColor: "#eaeaea",
+    marginBottom: 16,
+  },
+  monthTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#1f2937",
     textAlign: "center",
-    fontSize: 14,
-    fontWeight: "bold",
-    textAlignVertical: "center",
-    width: width - 32,
   },
-  weekRow: {
+  weekHeader: {
     flexDirection: "row",
-    backgroundColor: "#fafafa",
-    width: width - 32,
+    marginBottom: 8,
   },
-  weekDay: { textAlign: "center", fontSize: 12, fontWeight: "600" },
-  daysContainer: {
+  weekDayContainer: {
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  weekDayText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#6b7280",
+  },
+  sundayText: {
+    color: "#ef4444",
+  },
+  saturdayText: {
+    color: "#3b82f6",
+  },
+  daysGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    width: width - 32,
   },
   dayCell: {
-    borderWidth: 0.5,
-    borderColor: "#ddd",
     alignItems: "center",
-    justifyContent: "flex-start",
-    paddingTop: 2,
+    justifyContent: "center",
+    borderRadius: 8,
+    marginBottom: 4,
     position: "relative",
   },
   dayText: {
-    fontSize: CELL_SIZE * 0.3,
-    textAlign: "center",
-    width: CELL_SIZE,
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#374151",
   },
   todayCell: {
-    backgroundColor: "transparent",
-    borderColor: "#7fff7f",
+    backgroundColor: "#667eea",
+  },
+  todayText: {
+    color: "#fff",
+    fontWeight: "600",
+  },
+  selectedCell: {
+    backgroundColor: "#e0e7ff",
     borderWidth: 2,
+    borderColor: "#667eea",
   },
-  selectedCell: { backgroundColor: "#b7ffb7" },
-  starIcon: {
+  selectedText: {
+    color: "#667eea",
+    fontWeight: "600",
+  },
+  eventCell: {
+    backgroundColor: "#fef3c7",
+  },
+  weekendText: {
+    color: "#9ca3af",
+  },
+  eventIndicator: {
     position: "absolute",
-    top: "65%",
-    left: "50%",
-    transform: [
-      { translateX: -CELL_SIZE * 0.2 },
-      { translateY: -CELL_SIZE * 0.2 },
-    ],
+    top: 4,
+    right: 4,
+    backgroundColor: "#f59e0b",
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    alignItems: "center",
+    justifyContent: "center",
   },
-
-  eventListContainer: {
+  eventCount: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "600",
+  },
+  eventSection: {
     flex: 1,
     backgroundColor: "#fff",
-    borderTopColor: "#ddd",
-    borderTopWidth: 0.5,
-    marginTop: -8,
+    marginTop: 8,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  eventItem: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomColor: "#eee",
-    borderBottomWidth: 0.5,
+  eventHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
   },
-  eventTitle: { fontSize: 16, fontWeight: "bold", marginBottom: 2 },
-  eventDetail: { fontSize: 14, color: "#555" },
-  eventPlaceholder: {
-    padding: 12,
+  eventHeaderTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1f2937",
+    marginLeft: 8,
+  },
+  eventList: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  loadingContainer: {
+    alignItems: "center",
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
     fontSize: 14,
-    color: "#999",
+    color: "#6b7280",
+  },
+  eventCard: {
+    backgroundColor: "#f9fafb",
+    borderRadius: 12,
+    padding: 16,
+    marginVertical: 6,
+    borderLeftWidth: 4,
+    borderLeftColor: "#f59e0b",
+  },
+  eventCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  eventTypeChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fef3c7",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  eventTypeText: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#d97706",
+    marginLeft: 4,
+  },
+  eventTime: {
+    fontSize: 12,
+    color: "#6b7280",
+    fontWeight: "500",
+  },
+  eventTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1f2937",
+    marginBottom: 4,
+  },
+  eventDetail: {
+    fontSize: 14,
+    color: "#6b7280",
+    lineHeight: 20,
+  },
+  emptyState: {
+    alignItems: "center",
+    paddingVertical: 40,
+  },
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#374151",
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyStateSubtitle: {
+    fontSize: 14,
+    color: "#9ca3af",
     textAlign: "center",
+    lineHeight: 20,
   },
 });

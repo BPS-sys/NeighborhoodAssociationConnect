@@ -10,12 +10,16 @@ import {
   Platform,
   ScrollView,
   TextInput,
+  Dimensions,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Stack } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useAuth } from '../../contexts/AuthContext';
+
+const { width } = Dimensions.get('window');
 
 export default function ArticleScreen() {
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -23,6 +27,7 @@ export default function ArticleScreen() {
   const [loadingConvert, setLoadingConvert] = useState(false);
   const [loadingUpload, setLoadingUpload] = useState(false);
   const [articleText, setArticleText] = useState<string>('');
+  const { userId, userName, RegionID, regionName } = useAuth();
 
   // フォーム状態
   const [title, setTitle] = useState('');
@@ -30,7 +35,6 @@ export default function ArticleScreen() {
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isPostDisabled, setIsPostDisabled] = useState(false);
-
 
   // 権限リクエスト
   useEffect(() => {
@@ -46,10 +50,10 @@ export default function ArticleScreen() {
 
   // 画像選択 → URI 設定 & バイナリ変換
   const pickAndConvert = async () => {
-    setIsPostDisabled(false); // 新しい画像を選んだら投稿を許可
+    setIsPostDisabled(false);
     setBinaryData(null);
     setArticleText('');
-    // 1) 画像を選択
+    
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.8,
@@ -57,12 +61,10 @@ export default function ArticleScreen() {
     if (result.canceled) return;
 
     const uri = result.assets[0].uri;
-
     setImageUri(uri);
     setLoadingConvert(true);
 
     try {
-      // 2) fetch でバイナリ取得
       const resp = await fetch(uri);
       const arrayBuffer = await resp.arrayBuffer();
       setBinaryData(arrayBuffer);
@@ -106,7 +108,6 @@ export default function ArticleScreen() {
     }
   };
 
-
   // 日付選択ハンドラ
   const onChangeDate = (event: any, selectedDate?: Date) => {
     setShowDatePicker(Platform.OS === 'ios');
@@ -132,7 +133,7 @@ export default function ArticleScreen() {
     };
 
     try {
-      const url = `http://localhost:8080/api/v1/regions/ugyGiVvlg4fDN2afMnoe(RegionID)/news`;
+      const url = `http://localhost:8080/api/v1/regions/${RegionID}/news`;
 
       const response = await fetch(url, {
         method: "POST",
@@ -149,77 +150,170 @@ export default function ArticleScreen() {
       }
 
       Alert.alert("投稿完了", "記事を投稿しました！");
-      // 投稿成功後に状態リセットするならここでsetStateを使う
-
+      setIsPostDisabled(true);
     } catch (e) {
       Alert.alert("送信エラー", String(e));
     }
   };
 
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case '防災': return 'security';
+      case '防犯': return 'shield';
+      case 'イベント': return 'event';
+      default: return 'article';
+    }
+  };
+
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case '防災': return '#ff6b6b';
+      case '防犯': return '#4ecdc4';
+      case 'イベント': return '#45b7d1';
+      default: return '#667eea';
+    }
+  };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <Stack.Screen options={{ 
+        title: '記事投稿',
+        headerStyle: { backgroundColor: '#667eea' },
+        headerTitleStyle: { color: '#fff', fontWeight: '700' },
+        headerTintColor: '#fff'
+      }} />
+      
       <View style={styles.container}>
-        <Stack.Screen options={{ title: '記事投稿' }} />
+        {/* ヘッダーセクション */}
+        <View style={styles.headerSection}>
+          <Text style={styles.mainTitle}>新しい記事を投稿</Text>
+          <Text style={styles.subtitle}>写真から記事を自動生成します</Text>
+        </View>
 
-        <Text style={styles.instruction}>記事にする写真をアップロードする</Text>
+        {/* 画像アップロードセクション */}
+        <View style={styles.uploadCard}>
+          <Text style={styles.sectionTitle}>
+            <MaterialIcons name="photo-camera" size={20} color="#667eea" /> 写真をアップロード
+          </Text>
+          
+          <TouchableOpacity 
+            style={[styles.uploadButton, loadingConvert && styles.uploadButtonLoading]} 
+            onPress={pickAndConvert}
+            disabled={loadingConvert}
+          >
+            {loadingConvert ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#667eea" />
+                <Text style={styles.loadingText}>処理中...</Text>
+              </View>
+            ) : (
+              <View style={styles.uploadContent}>
+                <MaterialIcons name="add-photo-alternate" size={48} color="#667eea" />
+                <Text style={styles.uploadButtonText}>写真を選択</Text>
+                <Text style={styles.uploadHint}>タップして画像を選択してください</Text>
+              </View>
+            )}
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.plusButton} onPress={pickAndConvert}>
-          {loadingConvert ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <MaterialIcons name="add" size={36} color="#fff" />
+          {imageUri && (
+            <View style={styles.previewImageContainer}>
+              <Image source={{ uri: imageUri }} style={styles.previewImage} />
+              <View style={styles.imageOverlay}>
+                <MaterialIcons name="check-circle" size={24} color="#4CAF50" />
+              </View>
+            </View>
           )}
-        </TouchableOpacity>
 
-        {imageUri && <Image source={{ uri: imageUri }} style={styles.preview} />}
-
-        {binaryData && (
-          <Text style={styles.infoText}>バイナリ変換済み：{binaryData.byteLength} bytes</Text>
-        )}
-
-        <TouchableOpacity
-          onPress={upload}
-          style={[styles.actionButton, loadingUpload && { opacity: 0.6 }]}
-          disabled={loadingUpload}
-        >
-          {loadingUpload ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.actionButtonText}>送信してOCR・記事生成</Text>
+          {binaryData && (
+            <TouchableOpacity
+              onPress={upload}
+              style={[styles.generateButton, loadingUpload && styles.buttonDisabled]}
+              disabled={loadingUpload}
+            >
+              {loadingUpload ? (
+                <View style={styles.buttonContent}>
+                  <ActivityIndicator size="small" color="#fff" />
+                  <Text style={styles.buttonText}>生成中...</Text>
+                </View>
+              ) : (
+                <View style={styles.buttonContent}>
+                  <MaterialIcons name="auto-awesome" size={20} color="#fff" />
+                  <Text style={styles.buttonText}>記事を生成</Text>
+                </View>
+              )}
+            </TouchableOpacity>
           )}
-        </TouchableOpacity>
+        </View>
 
+        {/* 記事プレビューセクション */}
         {articleText ? (
-          <View style={styles.previewContainer}>
-            <Text style={styles.previewTitle}>記事プレビュー</Text>
-            <ScrollView style={styles.previewBox}>
-              <Text style={styles.previewText}>{articleText}</Text>
-            </ScrollView>
-
-            {/* 追加：記事情報フォーム */}
-            <View style={styles.formContainer}>
-              <Text style={styles.label}>タイトル</Text>
+          <View style={styles.previewCard}>
+            <Text style={styles.sectionTitle}>
+              <MaterialIcons name="preview" size={20} color="#667eea" /> 記事プレビュー
+            </Text>
+            
+            <View style={styles.articleContainer}>
               <TextInput
-                style={styles.input}
-                value={title}
-                onChangeText={setTitle}
-                placeholder="記事のタイトルを入力"
+                style={styles.articleInput}
+                multiline
+                value={articleText}
+                onChangeText={setArticleText}
+                placeholder="生成された記事がここに表示されます"
+                placeholderTextColor="#999"
+                textAlignVertical="top"
               />
+            </View>
 
-              <Text style={styles.label}>カテゴリ</Text>
-              <View style={styles.pickerWrapper}>
-                <Picker selectedValue={columns} onValueChange={(val) => setColumns(val)}>
-                  <Picker.Item label="防災" value="防災" />
-                  <Picker.Item label="防犯" value="防犯" />
-                  <Picker.Item label="イベント" value="イベント" />
-                </Picker>
+            {/* フォームセクション */}
+            <View style={styles.formCard}>
+              <Text style={styles.formTitle}>記事情報</Text>
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>
+                  <MaterialIcons name="title" size={16} color="#555" /> タイトル
+                </Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={title}
+                  onChangeText={setTitle}
+                  placeholder="記事のタイトルを入力してください"
+                  placeholderTextColor="#999"
+                />
               </View>
 
-              <Text style={styles.label}>開始日時 (任意)</Text>
-              <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.dateButton}>
-                <Text>{startTime ? startTime.toLocaleString() : '日時を選択'}</Text>
-              </TouchableOpacity>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>
+                  <MaterialIcons name={getCategoryIcon(columns)} size={16} color={getCategoryColor(columns)} /> 
+                  {' '}カテゴリ
+                </Text>
+                <View style={[styles.pickerContainer, { borderColor: getCategoryColor(columns) }]}>
+                  <Picker 
+                    selectedValue={columns} 
+                    onValueChange={(val) => setColumns(val)}
+                    style={styles.picker}
+                  >
+                    <Picker.Item label="🛡️ 防災" value="防災" />
+                    <Picker.Item label="🔒 防犯" value="防犯" />
+                    <Picker.Item label="🎉 イベント" value="イベント" />
+                  </Picker>
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>
+                  <MaterialIcons name="schedule" size={16} color="#555" /> 開始日時 (任意)
+                </Text>
+                <TouchableOpacity 
+                  onPress={() => setShowDatePicker(true)} 
+                  style={styles.dateButton}
+                >
+                  <MaterialIcons name="event" size={20} color="#667eea" />
+                  <Text style={styles.dateButtonText}>
+                    {startTime ? startTime.toLocaleString('ja-JP') : '日時を選択してください'}
+                  </Text>
+                  <MaterialIcons name="chevron-right" size={20} color="#ccc" />
+                </TouchableOpacity>
+              </View>
 
               {showDatePicker && (
                 <DateTimePicker
@@ -230,8 +324,21 @@ export default function ArticleScreen() {
                 />
               )}
 
-              <TouchableOpacity onPress={postArticle} style={styles.postButton}>
-                <Text style={styles.actionButtonText}>この記事を投稿する</Text>
+              <TouchableOpacity 
+                onPress={postArticle} 
+                style={[styles.postButton, isPostDisabled && styles.postButtonDisabled]} 
+                disabled={isPostDisabled}
+              >
+                <View style={styles.buttonContent}>
+                  <MaterialIcons 
+                    name={isPostDisabled ? "check-circle" : "publish"} 
+                    size={20} 
+                    color="#fff" 
+                  />
+                  <Text style={styles.postButtonText}>
+                    {isPostDisabled ? '投稿完了' : '記事を投稿する'}
+                  </Text>
+                </View>
               </TouchableOpacity>
             </View>
           </View>
@@ -242,84 +349,261 @@ export default function ArticleScreen() {
 }
 
 const styles = StyleSheet.create({
-  previewContainer: {
-    marginTop: 24,
-    width: '90%',
+  scrollView: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
   },
-  container: { flex: 1, padding: 24, backgroundColor: '#f5f5f5', alignItems: 'center' },
-  instruction: { fontSize: 16, color: '#333', marginVertical: 16, textAlign: 'center' },
-  plusButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#007AFF',
+  container: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+  },
+  
+  // ヘッダーセクション
+  headerSection: {
+    paddingVertical: 30,
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  preview: { marginTop: 16, width: '80%', height: 200, borderRadius: 8 },
-  infoText: { marginTop: 12, color: '#555' },
-  actionButton: {
-    marginTop: 24,
-    backgroundColor: '#28a745',
-    paddingVertical: 12,
-    paddingHorizontal: 28,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+  mainTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#1a202c',
+    marginBottom: 8,
+    textAlign: 'center',
   },
-  actionButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  previewTitle: { fontSize: 18, fontWeight: '700', marginVertical: 12 },
-  previewBox: {
-    width: '100%',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    padding: 12,
-    borderRadius: 6,
-    backgroundColor: '#fff',
-    maxHeight: 180, // プレビュー高さ制限（スクロール可能）
+  subtitle: {
+    fontSize: 16,
+    color: '#718096',
+    textAlign: 'center',
   },
-  previewText: { fontSize: 16, color: '#333' },
 
-  // 追加フォーム関連
-  formContainer: {
-    marginTop: 20,
-    width: '100%',
+  // カードスタイル
+  uploadCard: {
     backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 8,
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  previewCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  formCard: {
+    backgroundColor: '#f7fafc',
+    borderRadius: 12,
+    padding: 20,
+    marginTop: 20,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#e2e8f0',
+  },
+
+  // セクションタイトル
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#2d3748',
+    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  formTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#4a5568',
+    marginBottom: 16,
+  },
+
+  // アップロードボタン
+  uploadButton: {
+    borderWidth: 2,
+    borderColor: '#667eea',
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f8fafc',
+    minHeight: 160,
+  },
+  uploadButtonLoading: {
+    borderColor: '#cbd5e0',
+    backgroundColor: '#f7fafc',
+  },
+  uploadContent: {
+    alignItems: 'center',
+  },
+  uploadButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#667eea',
+    marginTop: 12,
+  },
+  uploadHint: {
+    fontSize: 14,
+    color: '#a0aec0',
+    marginTop: 4,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#667eea',
+    marginTop: 12,
+    fontWeight: '500',
+  },
+
+  // 画像プレビュー
+  previewImageContainer: {
+    marginTop: 20,
+    position: 'relative',
+    alignItems: 'center',
+  },
+  previewImage: {
+    width: width - 80,
+    height: 200,
+    borderRadius: 12,
+    resizeMode: 'cover',
+  },
+  imageOverlay: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+
+  // ボタン
+  generateButton: {
+    backgroundColor: '#667eea',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    marginTop: 20,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  buttonDisabled: {
+    backgroundColor: '#a0aec0',
+    shadowOpacity: 0.1,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+
+  // 記事入力
+  articleContainer: {
+    marginBottom: 20,
+  },
+  articleInput: {
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 12,
+    padding: 16,
+    backgroundColor: '#fff',
+    fontSize: 16,
+    lineHeight: 24,
+    minHeight: 200,
+    color: '#2d3748',
+  },
+
+  // フォーム要素
+  inputGroup: {
+    marginBottom: 20,
   },
   label: {
+    fontSize: 14,
     fontWeight: '600',
-    marginTop: 10,
+    color: '#4a5568',
+    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  input: {
-    borderColor: '#ccc',
+  textInput: {
     borderWidth: 1,
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    marginTop: 6,
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#fff',
+    fontSize: 16,
+    color: '#2d3748',
   },
-  pickerWrapper: {
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 6,
-    marginTop: 6,
+  pickerContainer: {
+    borderWidth: 2,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    overflow: 'hidden',
+  },
+  picker: {
+    height: 50,
   },
   dateButton: {
-    padding: 12,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 6,
-    marginTop: 6,
-  },
-  postButton: {
-    marginTop: 16,
-    backgroundColor: '#007AFF',
-    paddingVertical: 12,
-    borderRadius: 6,
+    flexDirection: 'row',
     alignItems: 'center',
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    backgroundColor: '#fff',
+  },
+  dateButtonText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#4a5568',
+    marginLeft: 12,
+  },
+
+  // 投稿ボタン
+  postButton: {
+    backgroundColor: '#48bb78',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    marginTop: 20,
+    shadowColor: '#48bb78',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  postButtonDisabled: {
+    backgroundColor: '#68d391',
+    shadowOpacity: 0.2,
+  },
+  postButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+    marginLeft: 8,
   },
 });

@@ -212,6 +212,7 @@ class ChatAgent:
             filled_args_tool = self.chat_client.chat(fill_in_prompt)
             tool_args = filled_args_tool.choices[0].message.content
             print("ツールの引数を埋めた結果：", tool_args)
+            # ツールを実行してコンテキストを取得
             context = await self.use_mcp_server(user_query=query,
                                           region_id=region_id,
                                           tool_name=tool_name,

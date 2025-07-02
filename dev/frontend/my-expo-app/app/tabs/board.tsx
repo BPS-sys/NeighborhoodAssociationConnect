@@ -13,8 +13,16 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 export default function BoardScreen() {
   return (
     <Stack.Navigator>
-      <Stack.Screen name="Home" component={BulletHomeScreen} />
-      <Stack.Screen name="Detail" component={BulletDetailScreen} />
+      <Stack.Screen
+        name="Home"
+        component={BulletHomeScreen}
+        options={{ headerShown: false }}  // ヘッダー非表示
+      />
+      <Stack.Screen
+        name="Detail"
+        component={BulletDetailScreen}
+        options={{ headerShown: false }}  // 必要ならDetailも非表示に
+      />
     </Stack.Navigator>
   );
 }
