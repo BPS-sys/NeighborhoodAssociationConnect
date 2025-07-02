@@ -6,7 +6,6 @@ const SendMessagePage: React.FC = () => {
   const [body, setBody] = useState('');
   const [recipient, setRecipient] = useState('送信先（町会名）');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [userIds, setUserIds] = useState<string[]>([]);
   const [regions, setRegions] = useState<{ id: string; name: string }[]>([]);
   const [selectedRegionId, setSelectedRegionId] = useState('');
   const [selectedRegionUsers, setSelectedRegionUsers] = useState<{ id: string; name: string }[]>([]);
@@ -51,7 +50,7 @@ const SendMessagePage: React.FC = () => {
       return;
     }
 
-    const payload = { title, text: body };
+    const payload = { title, text: body, author: "開発者" };
     let success = 0, failure = 0;
 
     for (const user of selectedRegionUsers) {
@@ -75,34 +74,194 @@ const SendMessagePage: React.FC = () => {
   };
 
   const styles: { [key: string]: CSSProperties } = {
-    app: { display: 'flex' },
-    sidebar: { width: '200px', backgroundColor: '#222', padding: '20px', color: '#fff' },
-    sidebarButton: { display: 'block', marginBottom: '10px', backgroundColor: '#444', color: 'white', padding: '10px', border: 'none', borderRadius: '5px' },
-    main: { flexGrow: 1, padding: '20px' },
-    title: { fontSize: '24px', marginBottom: '20px' },
-    formContainer: { maxWidth: '600px', width: '100%' },
-    dropdown: { marginBottom: '10px', cursor: 'pointer' },
-    dropdownList: { listStyle: 'none', padding: 0, margin: 0, backgroundColor: '#eee' },
-    dropdownItem: { padding: '8px', borderBottom: '1px solid #ccc', cursor: 'pointer' },
-    inputBox: { marginBottom: '10px' },
-    input: { width: '100%', padding: '8px' },
-    textarea: { width: '100%', padding: '8px' },
-    sendButton: { backgroundColor: '#007bff', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '5px', cursor: 'pointer', marginTop: '10px' },
+    app: {
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'flex-start',
+      paddingTop: '40px',
+      paddingBottom: '40px',
+    },
+    formContainer: {
+      width: '100%',
+      maxWidth: '800px',
+      backgroundColor: 'white',
+      borderRadius: '20px',
+      padding: '40px',
+      boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1)',
+      border: '1px solid rgba(255, 255, 255, 0.8)',
+      backdropFilter: 'blur(10px)',
+    },
+    title: {
+      fontSize: '32px',
+      fontWeight: '700',
+      marginBottom: '32px',
+      color: '#2d3748',
+      textAlign: 'center' as const,
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      WebkitBackgroundClip: 'text',
+      WebkitTextFillColor: 'transparent',
+      backgroundClip: 'text',
+    },
+    dropdown: {
+      marginBottom: '24px',
+      cursor: 'pointer',
+      position: 'relative' as const,
+      backgroundColor: '#f8fafc',
+      border: '2px solid #e2e8f0',
+      borderRadius: '12px',
+      padding: '16px 20px',
+      fontSize: '16px',
+      color: '#4a5568',
+      transition: 'all 0.3s ease',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    dropdownList: {
+      listStyle: 'none',
+      padding: 0,
+      margin: 0,
+      backgroundColor: 'white',
+      borderRadius: '12px',
+      boxShadow: '0 10px 30px rgba(0, 0, 0, 0.15)',
+      border: '1px solid #e2e8f0',
+      position: 'absolute' as const,
+      top: '100%',
+      left: 0,
+      right: 0,
+      zIndex: 10,
+      overflow: 'hidden',
+    },
+    dropdownItem: {
+      padding: '16px 20px',
+      borderBottom: '1px solid #f1f5f9',
+      cursor: 'pointer',
+      fontSize: '16px',
+      color: '#4a5568',
+      transition: 'all 0.2s ease',
+      backgroundColor: 'white',
+    },
+    inputBox: {
+      marginBottom: '24px',
+      position: 'relative' as const,
+    },
+    input: {
+      width: '100%',
+      padding: '18px 20px',
+      fontSize: '16px',
+      borderRadius: '12px',
+      border: '2px solid #e2e8f0',
+      backgroundColor: '#f8fafc',
+      transition: 'all 0.3s ease',
+      outline: 'none',
+      color: '#2d3748',
+      boxSizing: 'border-box' as const,
+    },
+    textarea: {
+      width: '100%',
+      padding: '18px 20px',
+      fontSize: '16px',
+      borderRadius: '12px',
+      border: '2px solid #e2e8f0',
+      backgroundColor: '#f8fafc',
+      transition: 'all 0.3s ease',
+      outline: 'none',
+      color: '#2d3748',
+      resize: 'vertical' as const,
+      minHeight: '120px',
+      fontFamily: 'inherit',
+      lineHeight: '1.6',
+      boxSizing: 'border-box' as const,
+    },
+    sendButton: {
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      color: 'white',
+      padding: '18px 40px',
+      border: 'none',
+      borderRadius: '12px',
+      cursor: 'pointer',
+      fontSize: '18px',
+      fontWeight: '600',
+      transition: 'all 0.3s ease',
+      boxShadow: '0 8px 20px rgba(102, 126, 234, 0.3)',
+      position: 'relative' as const,
+      overflow: 'hidden',
+      display: 'block',
+      margin: '0 auto',
+    },
+    userCount: {
+      marginTop: '16px',
+      padding: '12px 16px',
+      backgroundColor: '#e6fffa',
+      border: '1px solid #81e6d9',
+      borderRadius: '8px',
+      color: '#234e52',
+      fontSize: '14px',
+      fontWeight: '500',
+    },
   };
 
+  const hoverStyles = `
+    <style>
+      .dropdown:hover {
+        border-color: #667eea !important;
+        background-color: white !important;
+      }
+      
+      .dropdown-item:hover {
+        background-color: #f8fafc !important;
+        color: #667eea !important;
+      }
+      
+      .dropdown-item:last-child {
+        border-bottom: none !important;
+      }
+      
+      .input:focus, .textarea:focus {
+        border-color: #667eea !important;
+        background-color: white !important;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
+      }
+      
+      .send-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4) !important;
+      }
+      
+      .send-button:active {
+        transform: translateY(0);
+      }
+    </style>
+  `;
+
   return (
-    <div style={styles.app}>
-      <div style={styles.sidebar}>
-        <button style={styles.sidebarButton}>町会をつくる</button>
-        <button style={styles.sidebarButton}>メッセージ送信</button>
-      </div>
-
-      <div style={styles.main}>
-        <h2 style={styles.title}>メッセージを一斉送信するページ</h2>
-
+    <>
+      <div dangerouslySetInnerHTML={{ __html: hoverStyles }} />
+      <div style={styles.app}>
         <div style={styles.formContainer}>
-          <div style={styles.dropdown} onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
-            <span>{recipient} ▼</span>
+          <h2 style={styles.title}>📨 メッセージ一斉送信</h2>
+
+          <div 
+            className="dropdown"
+            style={{
+              ...styles.dropdown,
+              position: 'relative'
+            }} 
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          >
+            <span style={{ display: 'flex', alignItems: 'center' }}>
+              🏘️ {recipient}
+            </span>
+            <span style={{ 
+              transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 0.3s ease',
+              fontSize: '12px'
+            }}>
+              ▼
+            </span>
           </div>
 
           {isDropdownOpen && (
@@ -110,6 +269,7 @@ const SendMessagePage: React.FC = () => {
               {regions.map((region) => (
                 <li
                   key={region.id}
+                  className="dropdown-item"
                   style={styles.dropdownItem}
                   onClick={() => {
                     setRecipient(region.name);
@@ -118,16 +278,23 @@ const SendMessagePage: React.FC = () => {
                     fetchUsersInSelectedRegion(region.id);
                   }}
                 >
-                  {region.name}
+                  🏘️ {region.name}
                 </li>
               ))}
             </ul>
           )}
 
+          {selectedRegionUsers.length > 0 && (
+            <div style={styles.userCount}>
+              👥 送信対象: {selectedRegionUsers.length}名のユーザー
+            </div>
+          )}
+
           <div style={styles.inputBox}>
             <input
+              className="input"
               type="text"
-              placeholder="タイトル"
+              placeholder="📝 メッセージのタイトルを入力してください"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               style={styles.input}
@@ -136,20 +303,25 @@ const SendMessagePage: React.FC = () => {
 
           <div style={styles.inputBox}>
             <textarea
-              placeholder="本文"
-              rows={5}
+              className="textarea"
+              placeholder="✏️ メッセージの本文を入力してください..."
+              rows={6}
               value={body}
               onChange={(e) => setBody(e.target.value)}
               style={styles.textarea}
             />
           </div>
 
-          <button style={styles.sendButton} onClick={handleSend}>
-            メッセージ送信
+          <button 
+            className="send-button"
+            style={styles.sendButton} 
+            onClick={handleSend}
+          >
+            🚀 メッセージを送信
           </button>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

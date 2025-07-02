@@ -53,6 +53,14 @@ export default function TabsLayout() {
                   color={color}
                 />
               );
+            case "sendmessage":
+              return (
+                <Ionicons
+                  name={focused ? "send" : "send-outline"}
+                  size={size}
+                  color={color}
+                />
+              );
           }
         },
         tabBarLabelStyle: { fontSize: 12 },
@@ -65,6 +73,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="chat" options={{ title: "チャット" }} />
       <Tabs.Screen name="schedule" options={{ title: "スケジュール" }} />
       <Tabs.Screen name="article" options={{ title: "記事" }} />
+      <Tabs.Screen name="sendmessage" options={{ title: "送信" }} />
     </Tabs>
   );
 }

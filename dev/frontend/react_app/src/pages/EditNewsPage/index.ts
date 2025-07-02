@@ -1,0 +1,1 @@
+export {default as EditNewsPage} from './EditNewsPage';
