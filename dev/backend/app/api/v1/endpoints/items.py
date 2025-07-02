@@ -246,7 +246,8 @@ def get_user_messages(user_id: str):
                 "Title": d.get("Title", ""),
                 "Text": d.get("Text", ""),
                 "Senttime": d.get("SentTime", datetime.now()),
-                "read": d.get("read", "")
+                "read": d.get("read", ""),
+                "author": d.get("author", "")
             })
         return result
     except Exception as e:
@@ -261,7 +262,8 @@ def post_user_message(user_id: str, user_message: UserMessageIn):
             "Title": user_message.title,
             "Text": user_message.text,
             "SentTime": datetime.now(),
-            "read": False
+            "read": False,
+            "author": user_message.author,
         }
         new_doc = messages_ref.add(message_data)[1]
         return {"message": "メッセージを送信しました", "id": new_doc.id}

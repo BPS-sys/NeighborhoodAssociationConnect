@@ -31,6 +31,7 @@ type Notice = {
   detail: string;
   isEmergency: boolean;
   read: boolean;
+  author: string;
 };
 
 function convertMessagesToNotices(messages: any[]): Notice[] {
@@ -44,7 +45,8 @@ function convertMessagesToNotices(messages: any[]): Notice[] {
       date: formattedDate,
       detail: `【詳細情報】\n\n${msg.Text || "詳細情報なし"}`,
       isEmergency: /緊急|重要|避難|災害|台風/.test(msg.Title || ""), // 例: 緊急ワード含んでるかで判定
-      read: msg.read
+      read: msg.read,
+      author: msg.author
     };
   });
 }
@@ -403,6 +405,12 @@ export default function HomeScreen() {
                   <Text style={styles.modalDate}>
                     {selectedNotice?.date.replace(/-/g,"/")}
                   </Text>
+
+                  {/* 🆕 Author 表示 */}
+                  <Text style={styles.modalAuthor}>
+                    投稿者: {selectedNotice?.author || "不明"} 
+                  </Text>
+
                   <Text style={styles.modalBody}>{selectedNotice?.detail}</Text>
                 </ScrollView>
                 
@@ -810,5 +818,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  modalAuthor: {
+  fontSize: 14,
+  color: '#64748b',
+  marginBottom: 12,
+},
   scheduleButton: {},
 });

@@ -34,6 +34,7 @@ class ChatMessage(BaseModel):
 class UserMessageIn(BaseModel):
     title: str = Field(..., description="タイトル")
     text: str = Field(..., description="メッセージ本文")
+    author: str = Field(..., description="メッセージの送信者")
 
 class UserRegistRequest(BaseModel):
     user_id: str = Field(..., description="ユーザーID")

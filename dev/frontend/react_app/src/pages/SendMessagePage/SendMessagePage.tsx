@@ -50,7 +50,7 @@ const SendMessagePage: React.FC = () => {
       return;
     }
 
-    const payload = { title, text: body };
+    const payload = { title, text: body, author: "開発者" };
     let success = 0, failure = 0;
 
     for (const user of selectedRegionUsers) {
