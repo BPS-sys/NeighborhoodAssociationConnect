@@ -1,29 +1,29 @@
 // app/(tabs)/RegisterScreen.tsx - Modern UI Version
-import React, { useState, useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Platform,
-  ScrollView,
-  KeyboardAvoidingView,
-  StatusBar,
-  SafeAreaView,
-  Dimensions,
-  Animated,
-} from 'react-native';
-import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  Animated,
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
-import { auth } from '../../lib/firebase';
 import {
   createUserWithEmailAndPassword,
   sendEmailVerification,
 } from 'firebase/auth';
+import { auth } from '../../lib/firebase';
 
 import Constants from 'expo-constants';
 
@@ -189,19 +189,7 @@ export default function RegisterScreen() {
     }
   };
 
-  const InputContainer = ({ children, label, required = true }: { 
-    children: React.ReactNode; 
-    label: string; 
-    required?: boolean;
-  }) => (
-    <View style={styles.inputContainer}>
-      <View style={styles.labelContainer}>
-        <Text style={styles.inputLabel}>{label}</Text>
-        {required && <Text style={styles.requiredMark}>*</Text>}
-      </View>
-      {children}
-    </View>
-  );
+  
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -358,7 +346,6 @@ export default function RegisterScreen() {
                     clearError();
                   }}
                   placeholderTextColor="#9ca3af"
-                  multiline
                 />
               </View>
             </InputContainer>
@@ -842,3 +829,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
+
+const InputContainer = ({ children, label, required = true }: { 
+    children: React.ReactNode; 
+    label: string; 
+    required?: boolean;
+  }) => (
+    <View style={styles.inputContainer}>
+      <View style={styles.labelContainer}>
+        <Text style={styles.inputLabel}>{label}</Text>
+        {required && <Text style={styles.requiredMark}>*</Text>}
+      </View>
+      {children}
+    </View>
+  );
