@@ -18,6 +18,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '../../contexts/AuthContext';
+import Constants from 'expo-constants';
 
 const { width } = Dimensions.get('window');
 
@@ -88,6 +89,7 @@ export default function ArticleScreen() {
       const response = await fetch('http://localhost:8080/api/v1/upload-binary-image', {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`,
           'Content-Type': 'application/octet-stream',
         },
         body: binaryData,
@@ -138,6 +140,7 @@ export default function ArticleScreen() {
       const response = await fetch(url, {
         method: "POST",
         headers: {
+          'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(postData),

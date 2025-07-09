@@ -16,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from '../../contexts/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from "expo-router";
+import Constants from 'expo-constants';
 
 const WEEK_DAYS = ["日", "月", "火", "水", "木", "金", "土"];
 const { width } = Dimensions.get("window");
@@ -36,7 +37,11 @@ export default function ScheduleScreen() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const res = await fetch(`http://localhost:8080/api/v1/regions/${RegionID}/news`);
+        const res = await fetch(`http://localhost:8080/api/v1/regions/${RegionID}/news`, {
+          headers: {
+            'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`
+          }
+        });
         const data = await res.json();
 
         const now = new Date();

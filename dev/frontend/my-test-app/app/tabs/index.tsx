@@ -20,6 +20,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { RefreshControl } from "react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import Constants from 'expo-constants';
 
 const { width, height } = Dimensions.get("window");
 const MODAL_MAX_HEIGHT = height * 0.6;
@@ -72,7 +73,11 @@ export default function HomeScreen() {
 
   const fetchUserMessages = async () => {
     try {
-      const res = await fetch(`http://localhost:8080/api/v1/users/messages?user_id=${userId}`);
+      const res = await fetch(`http://localhost:8080/api/v1/users/messages?user_id=${userId}`, {
+        headers: {
+            'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`
+          }
+      });
       const messages = await res.json();
       const convedMessages = convertMessagesToNotices(messages);
       setNoticesData(convedMessages);
@@ -85,7 +90,11 @@ export default function HomeScreen() {
 
   const fetchPosts = async () => {
     try {
-      const res = await fetch(`http://localhost:8080/api/v1/regions/${RegionID}/news`);
+      const res = await fetch(`http://localhost:8080/api/v1/regions/${RegionID}/news`, {
+        headers: {
+            'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`
+          }
+      });
       const data = await res.json();
 
       const now = new Date();
@@ -154,6 +163,7 @@ export default function HomeScreen() {
       await fetch("http://localhost:8080/api/v1/user/update/read", {
         method: "POST",
         headers: {
+          'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({

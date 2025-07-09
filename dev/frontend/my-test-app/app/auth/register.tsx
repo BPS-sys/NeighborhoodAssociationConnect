@@ -54,9 +54,6 @@ export default function RegisterScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [role, setRole] = useState('会員');
 
-
-  const localhost = Constants.manifest?.debuggerHost?.split(':')[0];
-
   
 
   useEffect(() => {
@@ -66,10 +63,13 @@ export default function RegisterScreen() {
       duration: 800,
       useNativeDriver: true,
     }).start();
-
     const fetchTownIds = async () => {
       try {
-        const res = await fetch('http://localhost:8080/api/v1/regions/names');
+        const res = await fetch('http://localhost:8080/api/v1/regions/names', {
+          headers: {
+            'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`
+          }
+        });
         const data = await res.json();
         setTownIdList(data);
         if (data.length > 0) {
@@ -141,10 +141,11 @@ export default function RegisterScreen() {
       const phone_number = `${phone1}-${phone2}-${phone3}`;
 
       try {
-        const res = await fetch('http://localhost:8080/api/v1/regist/userid', {
+        const res = await fetch('http://192.168.11.7:8080/api/v1/regist/userid', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`
           },
           body: JSON.stringify({
             user_id: userId,

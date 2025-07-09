@@ -3,6 +3,7 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView 
 } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
+import Constants from 'expo-constants';
 
 const SendMessagePage: React.FC = () => {
   const [title, setTitle] = useState('');
@@ -19,7 +20,11 @@ const SendMessagePage: React.FC = () => {
   const fetchUsersInRegion = async (regionId: string) => {
     setSelectedRegionUsers([]);
     try {
-      const res = await fetch(`http://localhost:8080/api/v1/regions/${regionId}/users`);
+      const res = await fetch(`http://localhost:8080/api/v1/regions/${regionId}/users`, {
+        headers: {
+          'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`
+        }
+      });
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
       setSelectedRegionUsers(data.users);
@@ -47,7 +52,9 @@ const SendMessagePage: React.FC = () => {
       try {
         const res = await fetch(`http://localhost:8080/api/v1/users/post/messages?user_id=${user.id}`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json",
+          'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`
+          },
           body: JSON.stringify(payload),
         });
         if (res.ok) success++;

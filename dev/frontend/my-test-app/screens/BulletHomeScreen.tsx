@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { RootStackParamList } from '../app/board';
 import { useAuth } from '../contexts/AuthContext';
+import Constants from 'expo-constants';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
@@ -60,7 +61,11 @@ export default function BulletHomeScreen({ navigation }: Props) {
 
       if (isNeighbor) {
         // 隣接地域ID一覧を取得
-        const nearRes = await fetch(`http://localhost:8080/api/v1/near_regions/view?region_id=${RegionID}`);
+        const nearRes = await fetch(`http://localhost:8080/api/v1/near_regions/view?region_id=${RegionID}`, {
+          headers: {
+            'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`
+          }
+        });
         const nearData = await nearRes.json();
         targetRegionIDs = nearData.map((item: any) => item.data.ID);
         nearData.forEach((item: any) => {
@@ -72,14 +77,18 @@ export default function BulletHomeScreen({ navigation }: Props) {
 
       // 全地域分のニュースを並列取得
       const allNewsPromises = targetRegionIDs.map(async (id) => {
-        const res = await fetch(`http://localhost:8080/api/v1/regions/${id}/news`);
+        const res = await fetch(`http://localhost:8080/api/v1/regions/${id}/news`, {
+          headers: {
+            'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`
+          }
+        });
         const data = await res.json();
         const regionName = id === RegionID ? '自地域' : (nearRegionNames[id] || '不明地域');
         const formatted: Post[] = data.map((item: any) => ({
           id: item.id,
           category: item.columns,
           title: item.title,
-          date: item.time.split('T')[0],
+          date: item.time,
           content: item.text,
           regionName: regionName,
         }));
@@ -88,6 +97,11 @@ export default function BulletHomeScreen({ navigation }: Props) {
 
       const allNewsArrays = await Promise.all(allNewsPromises);
       const mergedNews = allNewsArrays.flat();
+
+      // 日時の降順にソート
+      mergedNews.sort((a, b) => {
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      });
 
       setPosts(mergedNews);
     } catch (error) {
@@ -112,18 +126,29 @@ export default function BulletHomeScreen({ navigation }: Props) {
 
   const filteredPosts = posts.filter(p => p.category === activeTab);
 
-  const formatDate = (dateString: string) => {
+  const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
+    
+    // UTC → JST変換
+    const jstDate = new Date(date.getTime() + 9 * 60 * 60 * 1000);
+
     const today = new Date();
-    const diffTime = Math.abs(today.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 1) return '今日';
-    if (diffDays === 2) return '昨日';
-    if (diffDays <= 7) return `${diffDays - 1}日前`;
-    
-    return dateString.replace(/-/g, '/');
+    const diffTime = today.getTime() - jstDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    const hh = jstDate.getUTCHours().toString().padStart(2,'0');
+    const mm = jstDate.getUTCMinutes().toString().padStart(2,'0');
+
+    if (diffDays === 0) {
+      return `今日 ${hh}:${mm}`;
+    }
+    if (diffDays === 1) return '昨日';
+    if (diffDays <= 7) return `${diffDays}日前`;
+
+    return `${jstDate.getUTCFullYear()}/${(jstDate.getUTCMonth()+1).toString().padStart(2,'0')}/${jstDate.getUTCDate().toString().padStart(2,'0')} ${hh}:${mm}`;
   };
+
+
 
   const getCategoryIcon = (category: string) => {
     return categoryIcons[category as keyof typeof categoryIcons] || 'information-circle';
@@ -163,7 +188,7 @@ export default function BulletHomeScreen({ navigation }: Props) {
             </LinearGradient>
             <View style={styles.postMetaContainer}>
               <Text style={styles.categoryText}>{item.category}</Text>
-              <Text style={styles.postDate}>{formatDate(item.date)}</Text>
+              <Text style={styles.postDate}>{formatDateTime(item.date)}</Text>
             </View>
             <Text style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
             地域：{item.regionName}
