@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
 import {
@@ -16,7 +17,6 @@ import {
 } from 'react-native';
 import { RootStackParamList } from '../app/board';
 import { useAuth } from '../contexts/AuthContext';
-import Constants from 'expo-constants';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
@@ -49,7 +49,7 @@ export default function BulletHomeScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const { RegionID } = useAuth();
+  const { RegionID, regionName } = useAuth();
   const [isNeighbor, setIsNeighbor] = useState(false);
   const nearRegionNames: { [key: string]: string } = {};
 
@@ -61,7 +61,7 @@ export default function BulletHomeScreen({ navigation }: Props) {
 
       if (isNeighbor) {
         // 隣接地域ID一覧を取得
-        const nearRes = await fetch(`http://localhost:8080/api/v1/near_regions/view?region_id=${RegionID}`, {
+        const nearRes = await fetch(`${Constants.expoConfig?.extra?.deployUrl}/api/v1/near_regions/view?region_id=${RegionID}`, {
           headers: {
             'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`
           }
@@ -77,20 +77,20 @@ export default function BulletHomeScreen({ navigation }: Props) {
 
       // 全地域分のニュースを並列取得
       const allNewsPromises = targetRegionIDs.map(async (id) => {
-        const res = await fetch(`http://localhost:8080/api/v1/regions/${id}/news`, {
+        const res = await fetch(`${Constants.expoConfig?.extra?.deployUrl}/api/v1/regions/${id}/news`, {
           headers: {
             'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`
           }
         });
         const data = await res.json();
-        const regionName = id === RegionID ? '自地域' : (nearRegionNames[id] || '不明地域');
+        const RegionName = id === RegionID ? regionName : (nearRegionNames[id] || '不明地域');
         const formatted: Post[] = data.map((item: any) => ({
           id: item.id,
           category: item.columns,
           title: item.title,
           date: item.time,
           content: item.text,
-          regionName: regionName,
+          regionName: RegionName,
         }));
         return formatted;
       });
@@ -128,16 +128,13 @@ export default function BulletHomeScreen({ navigation }: Props) {
 
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
-    
-    // UTC → JST変換
-    const jstDate = new Date(date.getTime() + 9 * 60 * 60 * 1000);
 
     const today = new Date();
-    const diffTime = today.getTime() - jstDate.getTime();
+    const diffTime = today.getTime() - date.getTime();
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-    const hh = jstDate.getUTCHours().toString().padStart(2,'0');
-    const mm = jstDate.getUTCMinutes().toString().padStart(2,'0');
+    const hh = date.getHours().toString().padStart(2,'0');
+    const mm = date.getMinutes().toString().padStart(2,'0');
 
     if (diffDays === 0) {
       return `今日 ${hh}:${mm}`;
@@ -145,7 +142,7 @@ export default function BulletHomeScreen({ navigation }: Props) {
     if (diffDays === 1) return '昨日';
     if (diffDays <= 7) return `${diffDays}日前`;
 
-    return `${jstDate.getUTCFullYear()}/${(jstDate.getUTCMonth()+1).toString().padStart(2,'0')}/${jstDate.getUTCDate().toString().padStart(2,'0')} ${hh}:${mm}`;
+    return `${date.getFullYear()}/${(date.getMonth()+1).toString().padStart(2,'0')}/${date.getDate().toString().padStart(2,'0')} ${hh}:${mm}`;
   };
 
 
@@ -188,7 +185,7 @@ export default function BulletHomeScreen({ navigation }: Props) {
             </LinearGradient>
             <View style={styles.postMetaContainer}>
               <Text style={styles.categoryText}>{item.category}</Text>
-              <Text style={styles.postDate}>{formatDateTime(item.date)}</Text>
+              <Text style={styles.postDate}>投稿日：{formatDateTime(item.date)}</Text>
             </View>
             <Text style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
             地域：{item.regionName}

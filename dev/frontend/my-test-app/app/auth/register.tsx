@@ -65,7 +65,7 @@ export default function RegisterScreen() {
     }).start();
     const fetchTownIds = async () => {
       try {
-        const res = await fetch('http://localhost:8080/api/v1/regions/names', {
+        const res = await fetch(`${Constants.expoConfig?.extra?.deployUrl}/api/v1/regions/names`, {
           headers: {
             'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`
           }
@@ -124,8 +124,8 @@ export default function RegisterScreen() {
       setError('メールアドレスを入力してください。');
       return;
     }
-    if (password.length < 6) {
-      setError('パスワードは6文字以上で入力してください。');
+    if (password.length < 8) {
+      setError('パスワードは8文字以上で入力してください。');
       return;
     }
 
@@ -141,7 +141,7 @@ export default function RegisterScreen() {
       const phone_number = `${phone1}-${phone2}-${phone3}`;
 
       try {
-        const res = await fetch('http://192.168.11.7:8080/api/v1/regist/userid', {
+        const res = await fetch(`${Constants.expoConfig?.extra?.deployUrl}/api/v1/regist/userid`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -187,7 +187,7 @@ export default function RegisterScreen() {
       } else if (err.code === 'auth/invalid-email') {
         message = 'メールアドレスの形式が正しくありません。';
       } else if (err.code === 'auth/weak-password') {
-        message = 'パスワードが弱すぎます（6文字以上が必要です）。';
+        message = 'パスワードが弱すぎます（8文字以上が必要です）。';
       }
       setError(message);
     } finally {
@@ -449,7 +449,7 @@ export default function RegisterScreen() {
                 <MaterialIcons name="lock" size={18} color="#667eea" style={styles.inputIcon} />
                 <TextInput
                   style={styles.passwordInput}
-                  placeholder="6文字以上で入力"
+                  placeholder="8文字以上で入力"
                   secureTextEntry={!showPassword}
                   value={password}
                   onChangeText={(text) => {

@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView 
+import Constants from 'expo-constants';
+import React, { useEffect, useState } from 'react';
+import {
+  Alert, ScrollView,
+  StyleSheet,
+  Text, TextInput, TouchableOpacity,
+  View
 } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
-import Constants from 'expo-constants';
 
 const SendMessagePage: React.FC = () => {
   const [title, setTitle] = useState('');
@@ -20,7 +23,7 @@ const SendMessagePage: React.FC = () => {
   const fetchUsersInRegion = async (regionId: string) => {
     setSelectedRegionUsers([]);
     try {
-      const res = await fetch(`http://localhost:8080/api/v1/regions/${regionId}/users`, {
+      const res = await fetch(`${Constants.expoConfig?.extra?.deployUrl}/api/v1/regions/${regionId}/users`, {
         headers: {
           'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`
         }
@@ -50,7 +53,7 @@ const SendMessagePage: React.FC = () => {
 
     for (const user of selectedRegionUsers) {
       try {
-        const res = await fetch(`http://localhost:8080/api/v1/users/post/messages?user_id=${user.id}`, {
+        const res = await fetch(`${Constants.expoConfig?.extra?.deployUrl}/api/v1/users/post/messages?user_id=${user.id}`, {
           method: "POST",
           headers: { "Content-Type": "application/json",
           'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`

@@ -1,21 +1,19 @@
-import React, { useState, useRef } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import Constants from 'expo-constants';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRef, useState } from "react";
 import {
+  Dimensions,
+  KeyboardAvoidingView, Platform,
   ScrollView,
-  View,
+  StatusBar,
+  StyleSheet,
   Text,
   TextInput,
-  StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
-  StatusBar,
-  Animated,
-  Dimensions,
-  Platform,
+  View
 } from "react-native";
 import { useAuth } from '../../contexts/AuthContext';
-import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from 'expo-linear-gradient';
-import Constants from 'expo-constants';
 
 const { width } = Dimensions.get('window');
 const scrollViewRef = useRef<ScrollView>(null);
@@ -33,7 +31,7 @@ export default function ChatScreen() {
   const { RegionID, regionName, userName } = useAuth();
 
   const handleSend = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || isTyping) return; // 追加: isTyping が true のとき送信禁止
 
     const now = new Date().toLocaleTimeString([], {
       hour: "2-digit",
@@ -45,7 +43,7 @@ export default function ChatScreen() {
       { sender: "user", text: input, timestamp: now },
     ];
     setMessages(newMessages);
-    setIsTyping(true);
+    setIsTyping(true); // AI返答待機状態にする
     setInput("");
 
     setTimeout(() => {
@@ -53,7 +51,7 @@ export default function ChatScreen() {
     }, 100);
 
     try {
-      const response = await fetch("http://localhost:8080/api/v1/Chat", {
+      const response = await fetch(`${Constants.expoConfig?.extra?.deployUrl}/api/v1/Chat`, {
         method: "POST",
         headers: {
           'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`,
@@ -91,17 +89,18 @@ export default function ChatScreen() {
         },
       ]);
     } finally {
-      setIsTyping(false);
+      setIsTyping(false); // AI返答終了で送信可能に戻す
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 100);
     }
   };
 
+
   const TypingIndicator = () => (
     <View style={styles.typingContainer}>
       <View style={styles.aiAvatar}>
-        <Ionicons name="robot-outline" size={14} color="#ffffff" />
+        <Ionicons name="hardware-chip-outline" size={20} color="#ffffff" />
       </View>
       <View style={styles.typingBubble}>
         <View style={styles.typingDots}>
@@ -114,6 +113,11 @@ export default function ChatScreen() {
   );
 
   return (
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20} // 必要に応じて調整
+    >
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#667eea" />
       
@@ -124,7 +128,7 @@ export default function ChatScreen() {
       >
         <View style={styles.headerContent}>
           <View style={styles.aiHeaderAvatar}>
-            <Ionicons name="robot-outline" size={20} color="#ffffff" />
+            <Ionicons name="hardware-chip-outline" size={20} color="#ffffff" />
           </View>
           <View style={styles.headerTextContainer}>
             <Text style={styles.headerTitle}>AIアシスタント</Text>
@@ -163,7 +167,7 @@ export default function ChatScreen() {
           >
             {msg.sender === "ai" && (
               <View style={styles.aiAvatar}>
-                <Ionicons name="robot-outline" size={14} color="#ffffff" />
+                <Ionicons name="hardware-chip-outline" size={20} color="#ffffff" />
               </View>
             )}
 
@@ -212,22 +216,24 @@ export default function ChatScreen() {
               styles.sendButton,
               input.trim() ? styles.sendButtonActive : styles.sendButtonInactive
             ]}
-            disabled={!input.trim()}
+            disabled={!input.trim() || isTyping}
           >
             <LinearGradient
-              colors={input.trim() ? ['#667eea', '#764ba2'] : ['#e2e8f0', '#e2e8f0']}
+              colors={input.trim() && !isTyping ? ['#667eea', '#764ba2'] : ['#e2e8f0', '#e2e8f0']}
               style={styles.sendButtonGradient}
             >
               <Ionicons 
                 name="send" 
                 size={18} 
-                color={input.trim() ? "#ffffff" : "#94a3b8"} 
+                color={input.trim() && !isTyping ? "#ffffff" : "#94a3b8"} 
               />
             </LinearGradient>
+
           </TouchableOpacity>
         </View>
       </View>
     </View>
+    </KeyboardAvoidingView>
   );
 }
 

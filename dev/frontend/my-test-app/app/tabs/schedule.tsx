@@ -1,22 +1,22 @@
-import React, { useState, useMemo, useEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Dimensions,
-  ScrollView,
-  TouchableOpacity,
-  SafeAreaView,
-  ActivityIndicator,
-  StatusBar,
-  Animated,
-  Platform,
-} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useAuth } from '../../contexts/AuthContext';
+import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from "expo-router";
-import Constants from 'expo-constants';
+import { useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Animated,
+  Dimensions,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from "react-native";
+import { useAuth } from '../../contexts/AuthContext';
 
 const WEEK_DAYS = ["日", "月", "火", "水", "木", "金", "土"];
 const { width } = Dimensions.get("window");
@@ -34,10 +34,71 @@ export default function ScheduleScreen() {
   const [fadeAnim] = useState(new Animated.Value(0));
   const { RegionID, userName, regionName } = useAuth();
 
+
+  const [refreshing, setRefreshing] = useState(false); // ✅ 追加
+
+  const fetchEvents = async () => {
+    try {
+      setRefreshing(true); // ✅ リフレッシュ開始
+      const res = await fetch(`${Constants.expoConfig?.extra?.deployUrl}/api/v1/regions/${RegionID}/news`, {
+        headers: {
+          'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`
+        }
+      });
+      const data = await res.json();
+
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      const filtered = data.filter((item: any) => {
+        if (item.columns !== "イベント" || !item.starttime) return false;
+        const startDate = new Date(item.starttime);
+        return startDate >= startOfMonth;
+      });
+
+      const byDate: Record<string, { title: string; detail: string; starttime: string }[]> = {};
+      for (const item of filtered) {
+        const date = new Date(item.starttime);
+        const key = date.toISOString().split("T")[0];
+
+        if (!byDate[key]) {
+          byDate[key] = [];
+        }
+
+        byDate[key].push({
+          title: item.title ?? "イベント",
+          detail: item.body ?? "",
+          starttime: item.starttime,
+        });
+      }
+      setEventsByDate(byDate);
+
+      // フェードインアニメーション
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }).start();
+    } catch (err) {
+      console.error("イベント取得失敗:", err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false); // ✅ リフレッシュ終了
+    }
+  };
+
+  useEffect(() => {
+    fetchEvents();
+  }, [RegionID]);
+
+  const onRefresh = () => {
+    fetchEvents(); // ✅ リフレッシュ時にデータ再取得
+  };
+  
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const res = await fetch(`http://localhost:8080/api/v1/regions/${RegionID}/news`, {
+        const res = await fetch(`${Constants.expoConfig?.extra?.deployUrl}/api/v1/regions/${RegionID}/news`, {
           headers: {
             'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`
           }
@@ -145,11 +206,13 @@ export default function ScheduleScreen() {
       </LinearGradient>
 
       <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
-        {/* カレンダー部分 */}
         <View style={styles.calendarSection}>
-          <ScrollView 
+          <ScrollView
             style={styles.calendarWrapper}
             showsVerticalScrollIndicator={false}
+            refreshControl={ // ✅ 追加
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
           >
             {months.map(({ year, month }) => {
               const cells = makeCells(year, month);
