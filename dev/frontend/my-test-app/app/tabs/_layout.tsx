@@ -1,9 +1,12 @@
-// app/(tabs)/_layout.tsx
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function TabsLayout() {
+  const { userRole } = useAuth();
+  console.log("TabsLayout userRole:", userRole);
+
   return (
     <Tabs
       screenOptions={({ route }) => ({
@@ -44,11 +47,7 @@ export default function TabsLayout() {
             case "article":
               return (
                 <MaterialCommunityIcons
-                  name={
-                    focused
-                      ? "newspaper"
-                      : "newspaper-variant-outline"
-                  }
+                  name={focused ? "newspaper" : "newspaper-variant-outline"}
                   size={size}
                   color={color}
                 />
@@ -72,8 +71,20 @@ export default function TabsLayout() {
       <Tabs.Screen name="board" options={{ title: "掲示板" }} />
       <Tabs.Screen name="chat" options={{ title: "チャット" }} />
       <Tabs.Screen name="schedule" options={{ title: "スケジュール" }} />
-      <Tabs.Screen name="article" options={{ title: "記事" }} />
-      <Tabs.Screen name="sendmessage" options={{ title: "送信" }} />
+      <Tabs.Screen
+        name="article"
+        options={{
+          title: "記事",
+          href: userRole === "会員" ? null : undefined,
+        }}
+      />
+      <Tabs.Screen
+        name="sendmessage"
+        options={{
+          title: "送信",
+          href: userRole === "会員" ? null : undefined,
+        }}
+      />
     </Tabs>
   );
 }

@@ -20,6 +20,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { RefreshControl } from "react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import Constants from 'expo-constants';
 
 const { width, height } = Dimensions.get("window");
 const MODAL_MAX_HEIGHT = height * 0.6;
@@ -62,12 +63,21 @@ export default function HomeScreen() {
   date: string;
   detail: string;
   }[]>([]);
-  const { userId, userName, RegionID, regionName } = useAuth();
+  const { userId, userName, RegionID, regionName, userRole } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
+  // 新しいステート（既存のuseStateの後に追加）
+  const [userInfoModalVisible, setUserInfoModalVisible] = useState(false);
+
+  const openUserInfoModal = () => setUserInfoModalVisible(true);
+  const closeUserInfoModal = () => setUserInfoModalVisible(false);
 
   const fetchUserMessages = async () => {
     try {
-      const res = await fetch(`http://localhost:8080/api/v1/users/messages?user_id=${userId}`);
+      const res = await fetch(`http://localhost:8080/api/v1/users/messages?user_id=${userId}`, {
+        headers: {
+            'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`
+          }
+      });
       const messages = await res.json();
       const convedMessages = convertMessagesToNotices(messages);
       setNoticesData(convedMessages);
@@ -80,7 +90,11 @@ export default function HomeScreen() {
 
   const fetchPosts = async () => {
     try {
-      const res = await fetch(`http://localhost:8080/api/v1/regions/${RegionID}/news`);
+      const res = await fetch(`http://localhost:8080/api/v1/regions/${RegionID}/news`, {
+        headers: {
+            'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`
+          }
+      });
       const data = await res.json();
 
       const now = new Date();
@@ -149,6 +163,7 @@ export default function HomeScreen() {
       await fetch("http://localhost:8080/api/v1/user/update/read", {
         method: "POST",
         headers: {
+          'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -212,9 +227,9 @@ export default function HomeScreen() {
           style={styles.headerGradient}
         >
           {/* アカウントアイコン */}
-          <TouchableOpacity style={styles.accountIcon}>
+          <TouchableOpacity style={styles.accountIcon} onPress={openUserInfoModal}>
             <View style={styles.accountIconContainer}>
-              <Ionicons name="person-circle-outline" size={28} color="#ffffff" onPress={() => router.push("/auth/login")} />
+              <Ionicons name="person-circle-outline" size={28} color="#ffffff" />
             </View>
           </TouchableOpacity>
 
@@ -487,6 +502,80 @@ export default function HomeScreen() {
             </BlurView>
           </View>
         </Modal>
+        <Modal
+  animationType="fade"
+  transparent
+  visible={userInfoModalVisible}
+  onRequestClose={closeUserInfoModal}
+>
+  <TouchableOpacity 
+    style={styles.popoverOverlay}
+    activeOpacity={1}
+    onPress={closeUserInfoModal}
+  >
+    <View style={styles.userInfoPopover}>
+      {/* 吹き出しの矢印 */}
+      <View style={styles.popoverArrow} />
+      
+      {/* ヘッダー */}
+      <View style={styles.popoverHeader}>
+        <Text style={styles.popoverTitle}>👤 ユーザー情報</Text>
+      </View>
+      
+      {/* コンテンツ */}
+      <View style={styles.popoverContent}>
+        <View style={styles.userInfoItem}>
+          <View style={styles.userInfoIconContainer}>
+            <Ionicons name="person-outline" size={18} color="#667eea" />
+          </View>
+          <View style={styles.userInfoText}>
+            <Text style={styles.userInfoLabel}>ユーザー名</Text>
+            <Text style={styles.userInfoValue}>{userName}</Text>
+          </View>
+        </View>
+        
+        <View style={styles.userInfoItem}>
+          <View style={styles.userInfoIconContainer}>
+            <Ionicons name="location-outline" size={18} color="#667eea" />
+          </View>
+          <View style={styles.userInfoText}>
+            <Text style={styles.userInfoLabel}>地域</Text>
+            <Text style={styles.userInfoValue}>{regionName}</Text>
+          </View>
+        </View>
+        
+        <View style={styles.userInfoItem}>
+          <View style={styles.userInfoIconContainer}>
+            <Ionicons name="shield-outline" size={18} color="#667eea" />
+          </View>
+          <View style={styles.userInfoText}>
+            <Text style={styles.userInfoLabel}>権限</Text>
+            <Text style={styles.userInfoValue}>{userRole || "一般ユーザー"}</Text>
+          </View>
+        </View>
+      </View>
+      
+      {/* ボタン */}
+      <View style={styles.popoverButtonContainer}>
+        <TouchableOpacity
+          style={styles.popoverButton}
+          onPress={() => {
+            closeUserInfoModal();
+            router.push("/auth/login");
+          }}
+        >
+          <LinearGradient
+            colors={['#ef4444', '#dc2626']}
+            style={styles.popoverButtonGradient}
+          >
+            <Text style={styles.popoverButtonText}>ログアウト</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
+    </View>
+  </TouchableOpacity>
+</Modal>
+
       </View>
     )
   );
@@ -824,4 +913,94 @@ const styles = StyleSheet.create({
   marginBottom: 12,
 },
   scheduleButton: {},
+  // ポップオーバー用スタイル
+  popoverOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
+  userInfoPopover: {
+    position: 'absolute',
+    top: Platform.OS === "ios" ? 95 : 75,
+    right: 20,
+    width: 280,
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  popoverArrow: {
+    position: 'absolute',
+    top: -8,
+    right: 24,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 8,
+    borderRightWidth: 8,
+    borderBottomWidth: 8,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: '#ffffff',
+  },
+  popoverHeader: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  popoverTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1e293b',
+  },
+  popoverContent: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  userInfoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  userInfoIconContainer: {
+    backgroundColor: '#f1f5f9',
+    borderRadius: 10,
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  userInfoText: {
+    flex: 1,
+  },
+  userInfoLabel: {
+    fontSize: 12,
+    color: '#64748b',
+    marginBottom: 2,
+  },
+  userInfoValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1e293b',
+  },
+  popoverButtonContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+  },
+  popoverButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  popoverButtonGradient: {
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  popoverButtonText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: '600',
+  },
 });

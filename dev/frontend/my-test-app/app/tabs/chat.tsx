@@ -15,6 +15,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from 'expo-linear-gradient';
+import Constants from 'expo-constants';
 
 const { width } = Dimensions.get('window');
 const scrollViewRef = useRef<ScrollView>(null);
@@ -55,6 +56,7 @@ export default function ChatScreen() {
       const response = await fetch("http://localhost:8080/api/v1/Chat", {
         method: "POST",
         headers: {
+          'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({

@@ -5,6 +5,7 @@ from datetime import datetime
 
 class NearRegion(BaseModel):
     ID: str
+    Name: str
 
 class NewsIn(BaseModel):
     title: str
@@ -43,6 +44,7 @@ class UserRegistRequest(BaseModel):
     phone_number: str = Field(..., description="電話番号")
     region_id: str = Field(..., description="地域ID")
     address: str = Field(..., description="住所")
+    role: str = Field(..., description="役割")
 
 class UserInfomationRequest(BaseModel):
     user_id: str = Field(..., description="ユーザーID")

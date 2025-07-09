@@ -17,10 +17,15 @@ export default function BulletDetailScreen({ route, navigation }: Props) {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
-      weekday: 'long'
+      weekday: 'long',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: 'Asia/Tokyo',
     };
-    return date.toLocaleDateString('ja-JP', options);
+    return date.toLocaleDateString('ja-JP', options).replace('、', ' ');
   };
+
 
   return (
     <View style={styles.container}>

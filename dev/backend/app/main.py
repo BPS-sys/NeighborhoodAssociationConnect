@@ -2,10 +2,24 @@ from fastapi import FastAPI
 import uvicorn
 from starlette.middleware.cors import CORSMiddleware
 from api.v1.endpoints import items
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import JSONResponse
+import os
+import dotenv
 
-
+dotenv.load_dotenv()
+API_KEY = os.getenv("BACKEND_API_KEY")
 
 app = FastAPI()
+
+@app.middleware("http")
+async def verify_api_key(request: Request, call_next):
+    auth_header = request.headers.get("Authorization")
+    if auth_header != f"Bearer {API_KEY}":
+        return JSONResponse(status_code=401, content={"detail": "Invalid or missing API Key"})
+    response = await call_next(request)
+    return response
+
 # CORSを回避するための設定
 app.add_middleware(
     CORSMiddleware,
