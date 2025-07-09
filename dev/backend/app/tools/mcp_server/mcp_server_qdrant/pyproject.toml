@@ -1,0 +1,10 @@
+[project]
+name = "mcp_server_qdrant"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11.3"
+dependencies = [
+    "fastmcp>=2.8.0",
+    "qdrant-client>=1.14.2"
+]
