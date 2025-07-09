@@ -107,20 +107,24 @@ export default function HomeScreen() {
       filtered.sort((a: any, b: any) => new Date(a.starttime).getTime() - new Date(b.starttime).getTime());
 
       const formattedEvents = filtered.map((item: any, index: number) => {
-        const eventDate = new Date(item.starttime);
-        const y = eventDate.getFullYear();
-        const m = (eventDate.getMonth() + 1).toString().padStart(2, '0');
-        const d = eventDate.getDate().toString().padStart(2, '0');
-        const weekday = ["日", "月", "火", "水", "木", "金", "土"][eventDate.getDay()];
-        const formattedDate = `${y}/${m}/${d} (${weekday})`;
+      const eventDate = new Date(item.starttime);
+      const y = eventDate.getFullYear();
+      const m = (eventDate.getMonth() + 1).toString().padStart(2, '0');
+      const d = eventDate.getDate().toString().padStart(2, '0');
+      const hh = eventDate.getHours().toString().padStart(2, '0');
+      const mm = eventDate.getMinutes().toString().padStart(2, '0');
+      const weekday = ["日", "月", "火", "水", "木", "金", "土"][eventDate.getDay()];
 
-        return {
-          id: `e${index + 1}`,
-          title: item.title,
-          date: formattedDate,
-          detail: `【詳細情報】\n\n${item.text || "詳細情報なし"}`,
-        };
-      });
+      const formattedDate = `${y}/${m}/${d} (${weekday}) ${hh}:${mm}`;
+
+      return {
+        id: `e${index + 1}`,
+        title: item.title,
+        date: formattedDate,
+        detail: `【詳細情報】\n\n${item.text || "詳細情報なし"}`,
+      };
+    });
+
 
       setUpcomingEvents(formattedEvents);
     } catch (error) {
@@ -354,7 +358,7 @@ export default function HomeScreen() {
                           </View>
                           <View style={styles.eventTextContainer}>
                             <Text style={styles.eventTitle}>{item.title}</Text>
-                            <Text style={styles.eventDate}>{item.date}</Text>
+                            <Text style={styles.eventDate}>開催日：{item.date}</Text>
                           </View>
                           <Ionicons name="chevron-forward" size={20} color="#ffffff" />
                         </View>
@@ -468,7 +472,7 @@ export default function HomeScreen() {
                     {selectedEvent?.title}
                   </Text>
                   <Text style={styles.modalDate}>
-                    {selectedEvent?.date}
+                    開催日：{selectedEvent?.date}
                   </Text>
                   <Text style={styles.modalBody}>{selectedEvent?.detail}</Text>
                 </ScrollView>

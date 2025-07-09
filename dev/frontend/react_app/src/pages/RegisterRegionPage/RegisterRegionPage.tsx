@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
-const API_BASE_URL = 'http://localhost:8080';
+const API_BASE_URL = `${import.meta.env.VITE_DEPLOY_URL}`;
 
 async function callAPI(endpoint: string, method = 'GET', data = null) {
   const options: any = {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json',
+               'Authorization' : `Bearer ${import.meta.env.VITE_BACKEND_API_KEY}`
+     },
   };
   if (data && method !== 'GET') options.body = JSON.stringify(data);
 
@@ -18,6 +20,8 @@ const RegisterRegionPage = () => {
   const [selectedRegionId, setSelectedRegionId] = useState('');
   const [nearRegions, setNearRegions] = useState([]);
   const [newRegionIdInput, setNewRegionIdInput] = useState('');
+  const [newNearRegionIdInput, setNewNearRegionIdInput] = useState('');
+  const [newRegionNameInput, setNewRegionNameInput] = useState(''); // ⭐️追加
   const [regionNameAndId, setRegionNameAndId] = useState({});
 
   const loadRegionOptions = useCallback(async () => {
@@ -38,8 +42,8 @@ const RegisterRegionPage = () => {
   useEffect(() => { if (selectedRegionId) loadNearRegions(selectedRegionId); }, [selectedRegionId, loadNearRegions]);
 
   const handleAddNearRegion = async () => {
-    await callAPI(`/api/v1/near_regions/add?region_id=${selectedRegionId}`, 'POST', { ID: newRegionIdInput, Name: regionNameAndId[newRegionIdInput] || '' });
-    setNewRegionIdInput('');
+    await callAPI(`/api/v1/near_regions/add?region_id=${selectedRegionId}`, 'POST', { ID: newNearRegionIdInput, Name: regionNameAndId[newNearRegionIdInput] || '' });
+    setNewNearRegionIdInput('');
     loadNearRegions(selectedRegionId);
   };
 
@@ -48,23 +52,37 @@ const RegisterRegionPage = () => {
     loadNearRegions(selectedRegionId);
   };
 
+  const handleRegisterRegion = async () => {
+    if (!newRegionIdInput || !newRegionNameInput) {
+      alert("地域IDと地域名を入力してください");
+      return;
+    }
+
+    await callAPI(`/api/v1/regist/region?region_id=${newRegionIdInput}&region_name=${newRegionNameInput}`, 'POST');
+    alert("地域を登録しました");
+    setNewRegionIdInput('');
+    setNewRegionNameInput('');
+    loadRegionOptions();
+  };
+
   const styles = {
     container: {
       maxWidth: '1200px',
       margin: '0 auto',
       padding: '2rem',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      background: 'white',
       minHeight: '100vh',
       color: '#333'
     },
     card: {
+      
       backgroundColor: 'rgba(255, 255, 255, 0.95)',
       borderRadius: '20px',
       padding: '2.5rem',
       boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
       backdropFilter: 'blur(10px)',
-      border: '1px solid rgba(255, 255, 255, 0.2)'
+      // border: '1px solid rgba(255, 255, 255, 0.2)'
     },
     title: {
       fontSize: '2.5rem',
@@ -211,35 +229,6 @@ const RegisterRegionPage = () => {
   return (
     <div style={styles.container}>
       <div style={styles.card}>
-        <h1 style={styles.title}>町会（地域）登録ページ</h1>
-
-        <div style={styles.inputGroup}>
-          <input
-            type="text"
-            placeholder="地域ID"
-            value={selectedRegionId}
-            onChange={(e) => setSelectedRegionId(e.target.value)}
-            style={styles.input}
-            onFocus={(e) => Object.assign(e.target.style, styles.inputFocus)}
-            onBlur={(e) => {
-              e.target.style.borderColor = '#e2e8f0';
-              e.target.style.boxShadow = 'none';
-              e.target.style.transform = 'none';
-            }}
-          />
-          <button 
-            onClick={loadRegionOptions} 
-            style={{...styles.button, ...styles.secondaryButton}}
-            onMouseEnter={(e) => Object.assign(e.target.style, styles.buttonHover)}
-            onMouseLeave={(e) => {
-              e.target.style.transform = 'none';
-              e.target.style.boxShadow = '0 4px 15px rgba(113, 128, 150, 0.4)';
-            }}
-          >
-            地域一覧更新
-          </button>
-        </div>
-
         <div style={styles.section}>
           <h2 style={{...styles.sectionTitle, '::before': styles.sectionTitleBefore}}>
             <span style={{borderLeft: '4px solid #667eea', paddingLeft: '1rem'}}>地域一覧</span>
@@ -261,14 +250,80 @@ const RegisterRegionPage = () => {
             ))}
           </div>
         </div>
+        <h1 style={styles.title}>町会（地域）登録ページ</h1>
+        {/* ⭐️地域登録フォーム追加 */}
+        <div style={{...styles.addSection, marginBottom: '2.5rem'}}>
+          <h2 style={{...styles.sectionTitle, '::before': styles.sectionTitleBefore}}>
+            <span style={{borderLeft: '4px solid #667eea', paddingLeft: '1rem'}}>新規地域登録</span>
+          </h2>
+          <div style={styles.inputGroup}>
+            <input
+              key="newRegionNameInput"
+              type="text"
+              placeholder="地域名"
+              value={newRegionNameInput}
+              onChange={(e) => setNewRegionNameInput(e.target.value)}
+              style={styles.input}
+              onFocus={(e) => Object.assign(e.target.style, styles.inputFocus)}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#e2e8f0';
+                e.target.style.boxShadow = 'none';
+                e.target.style.transform = 'none';
+              }}
+            />
+            <input
+              key="newRegionIdInput"
+              type="text"
+              placeholder="地域ID"
+              value={newRegionIdInput}
+              onChange={(e) => setNewRegionIdInput(e.target.value)}
+              style={styles.input}
+              onFocus={(e) => Object.assign(e.target.style, styles.inputFocus)}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#e2e8f0';
+                e.target.style.boxShadow = 'none';
+                e.target.style.transform = 'none';
+              }}
+            />
+            
+            <button
+              onClick={handleRegisterRegion}
+              style={{...styles.button, ...styles.primaryButton}}
+              onMouseEnter={(e) => Object.assign(e.target.style, styles.buttonHover)}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'none';
+                e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)';
+              }}
+            >
+              地域を登録
+            </button>
+          </div>
+        </div>
 
         <div style={{...styles.addSection, marginBottom: '2.5rem'}}>
           <div style={styles.inputGroup}>
+          <input
+            key="selectRegionIdInput"
+            type="text"
+            placeholder="地域ID"
+            value={selectedRegionId}
+            onChange={(e) => setSelectedRegionId(e.target.value)}
+            style={styles.input}
+            onFocus={(e) => Object.assign(e.target.style, styles.inputFocus)}
+            onBlur={(e) => {
+              e.target.style.borderColor = '#e2e8f0';
+              e.target.style.boxShadow = 'none';
+              e.target.style.transform = 'none';
+            }}
+          />
+        </div>
+          <div style={styles.inputGroup}>
             <input
+              key="addnearRegionIdInput"
               type="text"
               placeholder="追加する隣接地域ID"
-              value={newRegionIdInput}
-              onChange={(e) => setNewRegionIdInput(e.target.value)}
+              value={newNearRegionIdInput}
+              onChange={(e) => setNewNearRegionIdInput(e.target.value)}
               style={styles.input}
               onFocus={(e) => Object.assign(e.target.style, styles.inputFocus)}
               onBlur={(e) => {

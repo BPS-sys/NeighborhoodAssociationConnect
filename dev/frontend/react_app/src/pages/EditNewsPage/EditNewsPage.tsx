@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit3, Trash2, Globe, Calendar, FileText, Hash } from 'lucide-react';
 
-const API_BASE_URL = 'http://localhost:8080';
+
+const API_BASE_URL = `${import.meta.env.VITE_DEPLOY_URL}`;
 
 async function callAPI(endpoint: string, method = 'GET', data = null) {
   const options: any = {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json',
+               'Authorization' : `Bearer ${import.meta.env.VITE_BACKEND_API_KEY}`
+     },
   };
   if (data && method !== 'GET') options.body = JSON.stringify(data);
 
@@ -79,17 +82,30 @@ const EditNewsPage = () => {
     loadNewsList(selectedRegionId);
   };
 
+  const toDatetimeLocal = (isoString) => {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    const tzOffset = -date.getTimezoneOffset();
+    const diff = tzOffset >= 0 ? '+' : '-';
+    const pad = n => n.toString().padStart(2, '0');
+    const offsetHours = pad(Math.floor(Math.abs(tzOffset) / 60));
+    const offsetMinutes = pad(Math.abs(tzOffset) % 60);
+    return date.toISOString().slice(0,16);
+  };
+
   const handleEditNews = (news) => {
     setNewsForm({
       title: news.title,
       text: news.text,
       columns: news.columns || '',
-      custom_id: news.custom_id || '',
-      start_time: news.start_time || '',
+      custom_id: news.id || '',
+      start_time: toDatetimeLocal(news.starttime) || '',
       isEditing: true,
       editingNewsId: news.id
     });
   };
+
+
 
   const handleCancelEdit = () => {
     setNewsForm({ title: '', text: '', columns: '', custom_id: '', start_time: '', isEditing: false, editingNewsId: null });
@@ -211,7 +227,7 @@ const EditNewsPage = () => {
                   style={{ padding: '12px 16px', border: '1px solid #e5e7eb', borderRadius: '0.75rem', resize: 'none' }} />
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  <input type="text" placeholder="列情報" value={newsForm.columns}
+                  <input type="text" placeholder="カラム" value={newsForm.columns}
                     onChange={(e) => setNewsForm({ ...newsForm, columns: e.target.value })}
                     style={{ padding: '12px 16px', border: '1px solid #e5e7eb', borderRadius: '0.75rem' }} />
 
@@ -238,6 +254,7 @@ const EditNewsPage = () => {
                     <button type="button" onClick={handleCancelEdit}
                       style={{
                         padding: '12px 16px', borderRadius: '0.75rem', border: '1px solid #d1d5db',
+                        color: '#111827', background: '#f3f4f6', fontWeight: '500',
                         background: 'white', cursor: 'pointer'
                       }}>
                       キャンセル
@@ -276,10 +293,10 @@ const EditNewsPage = () => {
                         </div>
                         <p style={{ color: '#374151' }}>{news.text}</p>
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                          {news.columns && <span style={{ background: '#f3f4f6', padding: '4px 8px', borderRadius: '0.5rem' }}>列: {news.columns}</span>}
+                          {news.columns && <span style={{ background: '#000000', padding: '4px 8px', borderRadius: '0.5rem' }}>{news.columns}</span>}
                           {news.custom_id && <span style={{ background: '#dbeafe', color: '#1e40af', padding: '4px 8px', borderRadius: '0.5rem' }}>ID: {news.custom_id}</span>}
-                          {news.start_time && <span style={{ background: '#d1fae5', color: '#065f46', padding: '4px 8px', borderRadius: '0.5rem' }}>
-                            <Calendar size={12} /> {new Date(news.start_time).toLocaleString('ja-JP')}
+                          {news.starttime && <span style={{ background: '#d1fae5', color: '#065f46', padding: '4px 8px', borderRadius: '0.5rem' }}>
+                            <Calendar size={12} /> {new Date(news.starttime).toLocaleString('ja-JP')}
                           </span>}
                         </div>
                       </div>

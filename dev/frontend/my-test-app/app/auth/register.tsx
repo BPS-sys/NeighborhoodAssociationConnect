@@ -18,6 +18,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 import {
   createUserWithEmailAndPassword,
@@ -84,14 +85,7 @@ export default function RegisterScreen() {
   }, []);
 
   const togglePasswordVisibility = () => {
-    const currentScrollY = scrollPosition;
     setShowPassword(!showPassword);
-    
-    setTimeout(() => {
-      if (scrollViewRef.current) {
-        scrollViewRef.current.scrollTo({ y: currentScrollY, animated: false });
-      }
-    }, 10);
   };
 
   const handleScroll = (event: any) => {
@@ -215,20 +209,11 @@ export default function RegisterScreen() {
         </Animated.View>
       </LinearGradient>
 
-      <KeyboardAvoidingView 
-        style={styles.container} 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      <KeyboardAwareScrollView
+        enableOnAndroid
+        extraHeight={Platform.OS === 'ios' ? 60 : 80}
+        keyboardShouldPersistTaps="handled"
       >
-        <ScrollView 
-          ref={scrollViewRef}
-          contentContainerStyle={styles.scrollContainer}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          bounces={false}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-        >
           <View style={styles.formCard}>
             {error !== '' && (
               <Animated.View style={styles.errorContainer}>
@@ -473,15 +458,15 @@ export default function RegisterScreen() {
               <View style={styles.passwordStrength}>
                 <View style={[
                   styles.strengthBar,
+                  password.length >= 4 && styles.strengthBarActive
+                ]} />
+                <View style={[
+                  styles.strengthBar,
                   password.length >= 6 && styles.strengthBarActive
                 ]} />
                 <View style={[
                   styles.strengthBar,
                   password.length >= 8 && styles.strengthBarActive
-                ]} />
-                <View style={[
-                  styles.strengthBar,
-                  password.length >= 10 && styles.strengthBarActive
                 ]} />
               </View>
             </InputContainer>
@@ -527,8 +512,7 @@ export default function RegisterScreen() {
               <MaterialIcons name="login" size={16} color="#667eea" style={{ marginLeft: 4 }} />
             </TouchableOpacity>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }

@@ -13,6 +13,7 @@ const SendMessagePage: React.FC = () => {
   const [body, setBody] = useState('');
   const [selectedRegionUsers, setSelectedRegionUsers] = useState<{ id: string; name: string }[]>([]);
   const { userName, RegionID } = useAuth();
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (RegionID) {
@@ -48,6 +49,8 @@ const SendMessagePage: React.FC = () => {
       return;
     }
 
+    setLoading(true);
+
     const payload = { title, text: body, author: userName };
     let success = 0, failure = 0;
 
@@ -71,6 +74,7 @@ const SendMessagePage: React.FC = () => {
     Alert.alert("送信結果", `成功: ${success}, 失敗: ${failure}`);
     setTitle('');
     setBody('');
+    setLoading(false);
   };
 
   return (
@@ -90,6 +94,7 @@ const SendMessagePage: React.FC = () => {
             value={title}
             onChangeText={setTitle}
             style={styles.input}
+            editable={!loading}
           />
         </View>
 
@@ -101,15 +106,19 @@ const SendMessagePage: React.FC = () => {
             style={[styles.input, styles.textarea]}
             multiline
             numberOfLines={6}
+            editable={!loading}
           />
         </View>
 
         <TouchableOpacity 
-          style={styles.sendButton}
+          style={[styles.sendButton, loading && { backgroundColor: '#a5b4fc' }]} // ✅ loading時色薄く
           onPress={handleSend}
-          activeOpacity={0.8}
+          activeOpacity={loading ? 1 : 0.8}
+          disabled={loading} // ✅ 送信中は無効化
         >
-          <Text style={styles.sendButtonText}>🚀 メッセージを送信</Text>
+          <Text style={styles.sendButtonText}>
+            {loading ? "⏳ 送信中..." : "🚀 メッセージを送信"}
+          </Text>
         </TouchableOpacity>
       </View>
     </ScrollView>

@@ -30,7 +30,11 @@ export default function ScheduleScreen() {
 
   const [eventsByDate, setEventsByDate] = useState<Record<string, { title: string; detail: string; starttime: string }[]>>({});
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const yyyy = today.getFullYear();
+  const mm = (today.getMonth() + 1).toString().padStart(2, '0');
+  const dd = today.getDate().toString().padStart(2, '0');
+  const todayStr = `${yyyy}-${mm}-${dd}`;
+  const [selectedDate, setSelectedDate] = useState<string | null>(todayStr);
   const [fadeAnim] = useState(new Animated.Value(0));
   const { RegionID, userName, regionName } = useAuth();
 
@@ -243,7 +247,7 @@ export default function ScheduleScreen() {
                       const dateKey = d ? `${year}-${(month + 1).toString().padStart(2, "0")}-${d.toString().padStart(2, "0")}` : null;
                       const isToday = d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
                       const eventCount = dateKey ? getEventCount(dateKey) : 0;
-                      const isSelected = selectedDate === dateKey;
+                      const isSelected = dateKey !== null && selectedDate === dateKey;
                       const isWeekend = idx % 7 === 0 || idx % 7 === 6;
                       
                       return (
@@ -346,6 +350,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f8fafc",
+    width: "100%",
   },
   
   // ヘッダー
@@ -450,6 +455,7 @@ const styles = StyleSheet.create({
   daysGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
+    width: "101%",
   },
   dayCell: {
     alignItems: "center",
@@ -467,7 +473,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#667eea",
   },
   todayText: {
-    color: "#fff",
+    color: "#ef4444",
     fontWeight: "600",
   },
   selectedCell: {

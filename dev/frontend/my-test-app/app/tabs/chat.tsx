@@ -150,7 +150,7 @@ export default function ChatScreen() {
             <View style={styles.emptyIconContainer}>
               <Ionicons name="chatbubble-outline" size={48} color="#94a3b8" />
             </View>
-            <Text style={styles.emptyStateTitle}>チャットを始めましょう</Text>
+            <Text style={styles.emptyStateTitle}>AIとチャットを始めましょう！</Text>
             <Text style={styles.emptyStateSubtitle}>
               何かお手伝いできることはありますか？
             </Text>

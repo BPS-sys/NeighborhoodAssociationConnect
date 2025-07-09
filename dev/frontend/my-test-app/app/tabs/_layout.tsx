@@ -1,6 +1,5 @@
 import { Tabs } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function TabsLayout() {
@@ -23,7 +22,7 @@ export default function TabsLayout() {
             case "board":
               return (
                 <MaterialCommunityIcons
-                  name={focused ? "clipboard-text" : "clipboard-text-outline"}
+                  name={focused ? "bulletin-board" : "bulletin-board"}
                   size={size}
                   color={color}
                 />
@@ -31,7 +30,7 @@ export default function TabsLayout() {
             case "chat":
               return (
                 <Ionicons
-                  name={focused ? "chatbubble" : "chatbubble-outline"}
+                  name={focused ? "chatbubbles" : "chatbubbles-outline"}
                   size={size}
                   color={color}
                 />
@@ -47,15 +46,15 @@ export default function TabsLayout() {
             case "article":
               return (
                 <MaterialCommunityIcons
-                  name={focused ? "newspaper" : "newspaper-variant-outline"}
+                  name={focused ? "file-document-edit" : "file-document-edit-outline"}
                   size={size}
                   color={color}
                 />
               );
             case "sendmessage":
               return (
-                <Ionicons
-                  name={focused ? "send" : "send-outline"}
+                <MaterialIcons
+                  name={focused ? "send" : "send"}
                   size={size}
                   color={color}
                 />
@@ -70,18 +69,18 @@ export default function TabsLayout() {
       <Tabs.Screen name="index" options={{ title: "ホーム" }} />
       <Tabs.Screen name="board" options={{ title: "掲示板" }} />
       <Tabs.Screen name="chat" options={{ title: "チャット" }} />
-      <Tabs.Screen name="schedule" options={{ title: "スケジュール" }} />
+      <Tabs.Screen name="schedule" options={{ title: "予定" }} />
       <Tabs.Screen
         name="article"
         options={{
-          title: "記事",
+          title: "記事生成",
           href: userRole === "会員" ? null : undefined,
         }}
       />
       <Tabs.Screen
         name="sendmessage"
         options={{
-          title: "送信",
+          title: "一斉送信",
           href: userRole === "会員" ? null : undefined,
         }}
       />

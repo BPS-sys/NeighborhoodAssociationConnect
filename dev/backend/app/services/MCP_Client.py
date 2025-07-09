@@ -151,13 +151,13 @@ class ChatAgent:
                 transport = SSETransport(endpoint)
                 async with Client(transport=transport) as client:
                     result = await client.call_tool(tool_name, tool_args_json)
-                context = "\n\nデータベースでの検索結果：\n" + result[-1].text
+                context = "\n\nユーザーが所属している町内会に関する情報：\n" + result[-1].text
         elif endpoint == MCPServers.web_search:
             if tool_name == "fetch_tool":
                 transport = SSETransport(endpoint)
                 async with Client(transport=transport) as client:
                     result = await client.call_tool(tool_name, tool_args_json)
-                context = "\n\nWEBでの検索結果：" + result[-1].text
+                context = "\n\nWEBでの検索結果（関係のない情報が入っているかもしれません）：" + result[-1].text
         print(context)
         return context
     
@@ -188,7 +188,7 @@ class ChatAgent:
                       + f"ユーザーの質問: {query}\n\n使えるツール:\n{self.tool_descriptions}"
         prompt = self.chat_client.create_prompt(
                 user_prompt=user_prompt,
-                use_system_prompt=False
+                use_system_prompt=True
             )
         tool_response = self.chat_client.chat(prompt)
         tool_response_text = tool_response.choices[0].message.content
@@ -206,7 +206,7 @@ class ChatAgent:
             fill_in_prompt = self.generate_use_tool_llm_prompt(tool_args_dict=args_tools_dict, user_query=query, region_name=region_name)
             fill_in_prompt = self.chat_client.create_prompt(
                 user_prompt=fill_in_prompt,
-                use_system_prompt=False
+                use_system_prompt=True
             )
             # ツールの引数を埋める
             filled_args_tool = self.chat_client.chat(fill_in_prompt)
@@ -220,8 +220,8 @@ class ChatAgent:
                                           tool_args=tool_args)
             result_context += context
         # 最終的な応答生成
-        print("最終的な応答", result_context)
-        prompt = self.chat_client.create_prompt(user_prompt=f"ユーザーの質問: {query}\n\n今日の日付:{datetime.datetime.now()}\n\n{result_context}", use_system_prompt=True)
+        print(f"ユーザーの質問: {query}\n\nユーザーが所属している町内会名：{region_name}\n\n今日の日付:{datetime.datetime.now()}\n\n{result_context}")
+        prompt = self.chat_client.create_prompt(user_prompt=f"ユーザーの質問: {query}\n\nユーザーが所属している町内会名：{region_name}\n\n今日の日付:{datetime.datetime.now()}\n\n{result_context}", use_system_prompt=True)
         response = self.chat_client.chat(prompt)
         response_text = response.choices[0].message.content
 
