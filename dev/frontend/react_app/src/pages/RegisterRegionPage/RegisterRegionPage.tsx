@@ -18,10 +18,15 @@ const RegisterRegionPage = () => {
   const [selectedRegionId, setSelectedRegionId] = useState('');
   const [nearRegions, setNearRegions] = useState([]);
   const [newRegionIdInput, setNewRegionIdInput] = useState('');
+  const [regionNameAndId, setRegionNameAndId] = useState({});
 
   const loadRegionOptions = useCallback(async () => {
     const fetched = await callAPI('/api/v1/regions/names');
     setRegions(fetched.map(region => `${region.name} (ID: ${region.id})`));
+    setRegionNameAndId(fetched.reduce((acc, region) => {
+      acc[region.id] = region.name;
+      return acc;
+    }, {}));
   }, []);
 
   const loadNearRegions = useCallback(async (regionId) => {
@@ -33,7 +38,7 @@ const RegisterRegionPage = () => {
   useEffect(() => { if (selectedRegionId) loadNearRegions(selectedRegionId); }, [selectedRegionId, loadNearRegions]);
 
   const handleAddNearRegion = async () => {
-    await callAPI(`/api/v1/near_regions/add?region_id=${selectedRegionId}`, 'POST', { ID: newRegionIdInput });
+    await callAPI(`/api/v1/near_regions/add?region_id=${selectedRegionId}`, 'POST', { ID: newRegionIdInput, Name: regionNameAndId[newRegionIdInput] || '' });
     setNewRegionIdInput('');
     loadNearRegions(selectedRegionId);
   };

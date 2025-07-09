@@ -6,6 +6,7 @@ interface AuthContextType {
   userName: string | null;
   RegionID: string | null;
   regionName: string | null;
+  userRole: string | null;
   login: (userId: string) => void;
   logout: () => void;
 }
@@ -18,6 +19,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [userName, setUserName] = useState<string | null>(null);
   const [RegionID, setRegionID] = useState<string | null>(null);
   const [regionName, setRegionName] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
 
   const login = (id: string) => {
@@ -38,6 +40,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUserName(data.name);
       setRegionID(data.RegionID);
       fetchRegionName(data.RegionID);
+      setUserRole(data.role);
       console.log("ユーザー情報を取得しました", data);
       
     } catch (err) {
@@ -61,7 +64,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, userId, userName, RegionID, regionName, login, logout }}>
+    <AuthContext.Provider value={{ isLoggedIn, userId, userName, RegionID, regionName, userRole, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -52,8 +52,12 @@ export default function RegisterScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const [scrollPosition, setScrollPosition] = useState(0);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [role, setRole] = useState('会員');
+
 
   const localhost = Constants.manifest?.debuggerHost?.split(':')[0];
+
+  
 
   useEffect(() => {
     // フェードインアニメーション
@@ -65,7 +69,7 @@ export default function RegisterScreen() {
 
     const fetchTownIds = async () => {
       try {
-        const res = await fetch('http://192.168.11.7:8080/api/v1/regions/names');
+        const res = await fetch('http://localhost:8080/api/v1/regions/names');
         const data = await res.json();
         setTownIdList(data);
         if (data.length > 0) {
@@ -149,6 +153,7 @@ export default function RegisterScreen() {
             phone_number,
             region_id: townId.toString(),
             address,
+            role
           }),
         });
 
@@ -254,6 +259,24 @@ export default function RegisterScreen() {
                       value={region.id}
                     />
                   ))}
+                </Picker>
+              </View>
+            </InputContainer>
+
+            <InputContainer label="役割">
+              <View style={styles.pickerContainer}>
+                <MaterialIcons name="group" size={18} color="#667eea" style={styles.inputIcon} />
+                <Picker
+                  selectedValue={role}
+                  onValueChange={(value) => {
+                    setRole(value);
+                    clearError();
+                  }}
+                  mode="dropdown"
+                  style={styles.picker}
+                >
+                  <Picker.Item label="会員" value="会員" />
+                  <Picker.Item label="役員" value="役員" />
                 </Picker>
               </View>
             </InputContainer>
