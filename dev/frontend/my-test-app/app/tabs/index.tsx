@@ -1,26 +1,24 @@
 // app/(tabs)/index.tsx
-import React, { useState, useMemo, useEffect } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Modal,
-  Pressable,
-  Dimensions,
-  FlatList,
-  ScrollView,
-  Image,
-  Platform,
-  ActivityIndicator,
-} from "react-native";
-import { useRouter, Stack } from "expo-router";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useAuth } from '../../contexts/AuthContext';
-import { RefreshControl } from "react-native";
-import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import Constants from 'expo-constants';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Stack, useRouter } from "expo-router";
+import { useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Dimensions,
+  FlatList,
+  Modal,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from "react-native";
+import { useAuth } from '../../contexts/AuthContext';
 
 const { width, height } = Dimensions.get("window");
 const MODAL_MAX_HEIGHT = height * 0.6;
@@ -33,6 +31,7 @@ type Notice = {
   isEmergency: boolean;
   read: boolean;
   author: string;
+  sentDate: Date; // 追加: ソート・表示用
 };
 
 function convertMessagesToNotices(messages: any[]): Notice[] {
@@ -45,9 +44,10 @@ function convertMessagesToNotices(messages: any[]): Notice[] {
       title: msg.Title || "（タイトルなし）",
       date: formattedDate,
       detail: `【詳細情報】\n\n${msg.Text || "詳細情報なし"}`,
-      isEmergency: /緊急|重要|避難|災害|台風/.test(msg.Title || ""), // 例: 緊急ワード含んでるかで判定
+      isEmergency: /緊急|重要|避難|災害|台風/.test(msg.Title || ""),
       read: msg.read,
-      author: msg.author
+      author: msg.author,
+      sentDate, // 追加
     };
   });
 }
@@ -73,7 +73,7 @@ export default function HomeScreen() {
 
   const fetchUserMessages = async () => {
     try {
-      const res = await fetch(`http://localhost:8080/api/v1/users/messages?user_id=${userId}`, {
+      const res = await fetch(`${Constants.expoConfig?.extra?.deployUrl}/api/v1/users/messages?user_id=${userId}`, {
         headers: {
             'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`
           }
@@ -90,7 +90,7 @@ export default function HomeScreen() {
 
   const fetchPosts = async () => {
     try {
-      const res = await fetch(`http://localhost:8080/api/v1/regions/${RegionID}/news`, {
+      const res = await fetch(`${Constants.expoConfig?.extra?.deployUrl}/api/v1/regions/${RegionID}/news`, {
         headers: {
             'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`
           }
@@ -107,20 +107,24 @@ export default function HomeScreen() {
       filtered.sort((a: any, b: any) => new Date(a.starttime).getTime() - new Date(b.starttime).getTime());
 
       const formattedEvents = filtered.map((item: any, index: number) => {
-        const eventDate = new Date(item.starttime);
-        const y = eventDate.getFullYear();
-        const m = (eventDate.getMonth() + 1).toString().padStart(2, '0');
-        const d = eventDate.getDate().toString().padStart(2, '0');
-        const weekday = ["日", "月", "火", "水", "木", "金", "土"][eventDate.getDay()];
-        const formattedDate = `${y}/${m}/${d} (${weekday})`;
+      const eventDate = new Date(item.starttime);
+      const y = eventDate.getFullYear();
+      const m = (eventDate.getMonth() + 1).toString().padStart(2, '0');
+      const d = eventDate.getDate().toString().padStart(2, '0');
+      const hh = eventDate.getHours().toString().padStart(2, '0');
+      const mm = eventDate.getMinutes().toString().padStart(2, '0');
+      const weekday = ["日", "月", "火", "水", "木", "金", "土"][eventDate.getDay()];
 
-        return {
-          id: `e${index + 1}`,
-          title: item.title,
-          date: formattedDate,
-          detail: `【詳細情報】\n\n${item.text || "詳細情報なし"}`,
-        };
-      });
+      const formattedDate = `${y}/${m}/${d} (${weekday}) ${hh}:${mm}`;
+
+      return {
+        id: `e${index + 1}`,
+        title: item.title,
+        date: formattedDate,
+        detail: `【詳細情報】\n\n${item.text || "詳細情報なし"}`,
+      };
+    });
+
 
       setUpcomingEvents(formattedEvents);
     } catch (error) {
@@ -137,12 +141,12 @@ export default function HomeScreen() {
   const loading = loadingFetchPosts || loadingFetchUserMessage
 
   const notices = useMemo(
-    () =>
-      [...noticesData].sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-      ),
-    [noticesData]
-  );
+  () =>
+    [...noticesData].sort(
+      (a, b) => b.sentDate.getTime() - a.sentDate.getTime()
+    ),
+  [noticesData]
+);
   const [noticeModalVisible, setNoticeModalVisible] = useState(false);
   const [selectedNotice, setSelectedNotice] = useState<typeof notices[0] | null>(
     null
@@ -160,7 +164,7 @@ export default function HomeScreen() {
 
     // Firestore に既読フラグを書き込み
     try {
-      await fetch("http://localhost:8080/api/v1/user/update/read", {
+      await fetch(`${Constants.expoConfig?.extra?.deployUrl}/api/v1/user/update/read`, {
         method: "POST",
         headers: {
           'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`,
@@ -304,9 +308,9 @@ export default function HomeScreen() {
                           <Text style={[
                             styles.noticeTitle,
                             item.read && styles.noticeTitleRead
-                          ]}>{item.title}</Text>
+                          ]}>{item.title.length > 25 ? item.title.slice(0, 25) + '...':item.title}</Text>
                           <Text style={styles.noticeDate}>
-                            {item.date.replace(/-/g, "/")}
+                            {`${item.sentDate.getFullYear()}/${(item.sentDate.getMonth()+1).toString().padStart(2,'0')}/${item.sentDate.getDate().toString().padStart(2,'0')} ${item.sentDate.getHours().toString().padStart(2,'0')}:${item.sentDate.getMinutes().toString().padStart(2,'0')}`}
                           </Text>
                         </View>
                         <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
@@ -354,7 +358,7 @@ export default function HomeScreen() {
                           </View>
                           <View style={styles.eventTextContainer}>
                             <Text style={styles.eventTitle}>{item.title}</Text>
-                            <Text style={styles.eventDate}>{item.date}</Text>
+                            <Text style={styles.eventDate}>開催日：{item.date}</Text>
                           </View>
                           <Ionicons name="chevron-forward" size={20} color="#ffffff" />
                         </View>
@@ -468,7 +472,7 @@ export default function HomeScreen() {
                     {selectedEvent?.title}
                   </Text>
                   <Text style={styles.modalDate}>
-                    {selectedEvent?.date}
+                    開催日：{selectedEvent?.date}
                   </Text>
                   <Text style={styles.modalBody}>{selectedEvent?.detail}</Text>
                 </ScrollView>

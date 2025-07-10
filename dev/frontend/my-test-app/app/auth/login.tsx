@@ -66,7 +66,7 @@ export default function LoginScreen() {
             <View style={styles.logoContainer}>
               <MaterialIcons name="lock" size={32} color="#fff" />
             </View>
-            <Text style={styles.title}>おかえりなさい</Text>
+            <Text style={styles.title}>町会コネクト</Text>
             <Text style={styles.subtitle}>アカウントにログインしてください</Text>
           </View>
 

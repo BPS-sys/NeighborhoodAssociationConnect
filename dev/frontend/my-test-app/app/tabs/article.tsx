@@ -1,24 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Image,
-  StyleSheet,
-  Alert,
-  ActivityIndicator,
-  Platform,
-  ScrollView,
-  TextInput,
-  Dimensions,
-} from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Picker } from '@react-native-picker/picker';
+import Constants from 'expo-constants';
 import * as ImagePicker from 'expo-image-picker';
 import { Stack } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
-import { Picker } from '@react-native-picker/picker';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
-import Constants from 'expo-constants';
 
 const { width } = Dimensions.get('window');
 
@@ -86,7 +86,7 @@ export default function ArticleScreen() {
     setLoadingUpload(true);
     setArticleText('');
     try {
-      const response = await fetch('http://localhost:8080/api/v1/upload-binary-image', {
+      const response = await fetch(`${Constants.expoConfig?.extra?.deployUrl}/api/v1/upload-binary-image`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`,
@@ -135,7 +135,7 @@ export default function ArticleScreen() {
     };
 
     try {
-      const url = `http://localhost:8080/api/v1/regions/${RegionID}/news`;
+      const url = `${Constants.expoConfig?.extra?.deployUrl}/api/v1/regions/${RegionID}/news`;
 
       const response = await fetch(url, {
         method: "POST",

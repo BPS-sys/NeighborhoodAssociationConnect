@@ -18,5 +18,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     firebaseAppId: process.env.FIREBASE_APP_ID,
     firebaseMeasurementId: process.env.FIREBASE_MEASUREMENT_ID,
     backendAPIKey: process.env.BACKEND_API_KEY,
+    deployUrl: process.env.DEPLOY_URL,
   },
 });

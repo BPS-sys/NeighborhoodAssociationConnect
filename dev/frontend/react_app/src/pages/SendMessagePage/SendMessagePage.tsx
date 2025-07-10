@@ -16,7 +16,13 @@ const SendMessagePage: React.FC = () => {
 
   const fetchRegions = async () => {
     try {
-      const res = await fetch("http://localhost:8080/api/v1/regions/names");
+      const res = await fetch(`${import.meta.env.VITE_DEPLOY_URL}/api/v1/regions/names`,
+        {
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_BACKEND_API_KEY}`,
+          }
+        }
+      );
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
       setRegions(data);
@@ -29,7 +35,12 @@ const SendMessagePage: React.FC = () => {
   const fetchUsersInSelectedRegion = async (regionId: string) => {
     setSelectedRegionUsers([]);
     try {
-      const res = await fetch(`http://localhost:8080/api/v1/regions/${regionId}/users`);
+      const res = await fetch(`${import.meta.env.VITE_DEPLOY_URL}/api/v1/regions/${regionId}/users`,
+        {
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_BACKEND_API_KEY}`,
+          }
+        });
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
       setSelectedRegionUsers(data.users);
@@ -55,9 +66,11 @@ const SendMessagePage: React.FC = () => {
 
     for (const user of selectedRegionUsers) {
       try {
-        const res = await fetch(`http://localhost:8080/api/v1/users/post/messages?user_id=${user.id}`, {
+        const res = await fetch(`${import.meta.env.VITE_DEPLOY_URL}/api/v1/users/post/messages?user_id=${user.id}`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json",
+                     'Authorization': `Bearer ${import.meta.env.VITE_BACKEND_API_KEY}`
+           },
           body: JSON.stringify(payload),
         });
         if (res.ok) success++;
@@ -243,7 +256,7 @@ const SendMessagePage: React.FC = () => {
       <div style={styles.app}>
         <div style={styles.formContainer}>
           <h2 style={styles.title}>📨 メッセージ一斉送信</h2>
-
+          <div style={{ position: 'relative' }}>
           <div 
             className="dropdown"
             style={{
@@ -283,6 +296,7 @@ const SendMessagePage: React.FC = () => {
               ))}
             </ul>
           )}
+          </div>
 
           {selectedRegionUsers.length > 0 && (
             <div style={styles.userCount}>
