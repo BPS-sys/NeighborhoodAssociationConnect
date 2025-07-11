@@ -188,7 +188,7 @@ export default function BulletHomeScreen({ navigation }: Props) {
               <Text style={styles.postDate}>投稿日：{formatDateTime(item.date)}</Text>
             </View>
             <Text style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
-            地域：{item.regionName}
+            {item.regionName}
           </Text>
           </View>
 
@@ -510,7 +510,7 @@ const styles = StyleSheet.create({
   },
   postDate: {
     fontSize: 12,
-    color: '#94a3b8',
+    color: '#64748b',
     marginTop: 2,
   },
   postTitle: {
