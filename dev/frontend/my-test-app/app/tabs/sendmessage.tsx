@@ -1,19 +1,27 @@
 import Constants from 'expo-constants';
 import React, { useEffect, useState } from 'react';
 import {
-  Alert, ScrollView,
+  Alert,
+  ScrollView,
   StyleSheet,
-  Text, TextInput, TouchableOpacity,
-  View
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  Modal,
+  FlatList
 } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 
 const SendMessagePage: React.FC = () => {
-  const [title, setTitle] = useState('');
-  const [body, setBody] = useState('');
+  const [title, setTitle] = useState<string>('');
+  const [body, setBody] = useState<string>('');
   const [selectedRegionUsers, setSelectedRegionUsers] = useState<{ id: string; name: string }[]>([]);
   const { userName, RegionID } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [selectedUserMessages, setSelectedUserMessages] = useState<any[]>([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalUserName, setModalUserName] = useState('');
 
   useEffect(() => {
     if (RegionID) {
@@ -77,6 +85,25 @@ const SendMessagePage: React.FC = () => {
     setLoading(false);
   };
 
+  const handleUserPress = async (userId: string, name: string) => {
+    setModalUserName(name);
+    setSelectedUserMessages([]);
+    setModalVisible(true);
+    try {
+      const res = await fetch(`${Constants.expoConfig?.extra?.deployUrl}/api/v1/users/messages?user_id=${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`
+        }
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      setSelectedUserMessages(data.sort((a: any, b: any) => new Date(b.Senttime).getTime() - new Date(a.Senttime).getTime()));
+    } catch (err) {
+      Alert.alert("エラー", "メッセージ取得に失敗しました");
+      console.error(err);
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.app}>
       <View style={styles.formContainer}>
@@ -121,6 +148,53 @@ const SendMessagePage: React.FC = () => {
           </Text>
         </TouchableOpacity>
       </View>
+      <View style={styles.userListContainer}>
+        <Text style={styles.subTitle}>👥 地域ユーザー一覧</Text>
+        {selectedRegionUsers.map((user) => (
+          <TouchableOpacity
+            key={user.id}
+            style={styles.userCard}
+            onPress={() => handleUserPress(user.id, user.name)}
+          >
+            <Text style={styles.userCardText}>{user.name}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* ✅ メッセージモーダル */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>{modalUserName} さんのメッセージ一覧</Text>
+          <FlatList
+            data={selectedUserMessages}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <View style={styles.messageItem}>
+                <Text style={styles.messageTitle}>
+                  {(item.Title || '').length > 25 ? (item.Title || '').slice(0, 25)+'...' : (item.Title || '')}
+                </Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <Text style={styles.messageRead}>{item.read ? '✅ 既読' : '📭 未読'}</Text>
+                  <Text style={styles.messageDate}>
+                    {item.Senttime ? new Date(item.Senttime).toLocaleDateString() : ''}
+                  </Text>
+                </View>
+              </View>
+            )}
+            ListEmptyComponent={<Text>メッセージがありません。</Text>}
+          />
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => setModalVisible(false)}
+          >
+            <Text style={styles.closeButtonText}>閉じる</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
@@ -183,6 +257,63 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: '600',
+  },
+  userListContainer: {
+    width: '90%',
+    marginTop: 20,
+  },
+  subTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 12,
+    color: '#333',
+  },
+  userCard: {
+    backgroundColor: '#edf2f7',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  userCardText: {
+    fontSize: 16,
+  },
+  modalContainer: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#fff',
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  messageItem: {
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  messageTitle: {
+    fontSize: 16,
+  },
+  messageRead: {
+    fontSize: 14,
+    color: '#666',
+  },
+  closeButton: {
+    backgroundColor: '#667eea',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  closeButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  messageDate: {
+  fontSize: 14,
+  color: '#666',
   },
 });
 

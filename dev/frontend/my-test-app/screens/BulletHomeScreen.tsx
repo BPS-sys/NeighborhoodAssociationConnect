@@ -13,6 +13,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  Platform,
   View
 } from 'react-native';
 import { RootStackParamList } from '../app/board';
@@ -27,6 +28,8 @@ type Post = {
   date: string;
   content: string;
   regionName: string;
+  start_time?: string;
+  regionID?: string;
 };
 
 const { width } = Dimensions.get('window');
@@ -91,6 +94,8 @@ export default function BulletHomeScreen({ navigation }: Props) {
           date: item.time,
           content: item.text,
           regionName: RegionName,
+          start_time: item.starttime || '',
+          regionID: id
         }));
         return formatted;
       });
@@ -111,7 +116,6 @@ export default function BulletHomeScreen({ navigation }: Props) {
       setRefreshing(false);
     }
   };
-
 
   useEffect(() => {
     fetchPosts();
@@ -164,6 +168,10 @@ export default function BulletHomeScreen({ navigation }: Props) {
           title: item.title,
           date: item.date,
           content: item.content,
+          start_time: item.start_time,
+          id: item.id,
+          regionId: item.regionID,
+          category: item.category,
         })
       }
     >
@@ -190,10 +198,7 @@ export default function BulletHomeScreen({ navigation }: Props) {
             <Text style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
             {item.regionName}
           </Text>
-          </View>
-
-          
-          
+          </View>          
           <Text style={styles.postTitle} numberOfLines={2}>
             {item.title}
           </Text>
@@ -385,7 +390,7 @@ const styles = StyleSheet.create({
 
   // ヘッダー
   headerGradient: {
-    paddingTop: 12,
+    paddingTop: Platform.OS === 'ios' ? 50 : 30,
     paddingBottom: 12,
     paddingHorizontal: 20,
   },

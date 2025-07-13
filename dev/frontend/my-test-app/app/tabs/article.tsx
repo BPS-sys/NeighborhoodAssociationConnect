@@ -27,7 +27,7 @@ export default function ArticleScreen() {
   const [binaryData, setBinaryData] = useState<ArrayBuffer | null>(null);
   const [loadingConvert, setLoadingConvert] = useState(false);
   const [loadingUpload, setLoadingUpload] = useState(false);
-  const [articleText, setArticleText] = useState<string>('a');
+  const [articleText, setArticleText] = useState<string>('');
   const { userId, userName, RegionID, regionName } = useAuth();
 
   // フォーム状態

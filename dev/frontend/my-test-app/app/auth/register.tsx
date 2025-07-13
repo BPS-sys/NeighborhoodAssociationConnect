@@ -128,7 +128,8 @@ export default function RegisterScreen() {
     
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      await sendEmailVerification(userCredential.user);
+      // メール認証
+      // await sendEmailVerification(userCredential.user);
 
       const userId = userCredential.user.uid;
       const birthday = `${birthYear}${birthMonth}${birthDay}`;
@@ -173,7 +174,7 @@ export default function RegisterScreen() {
       setPhone3('');
       setEmail('');
       setPassword('');
-      router.push('/auth/verify');
+      router.push('/auth/login');
     } catch (err: any) {
       let message = '登録に失敗しました。';
       if (err.code === 'auth/email-already-in-use') {
