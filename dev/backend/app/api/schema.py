@@ -11,13 +11,13 @@ class NewsIn(BaseModel):
     title: str
     text: str
     columns: str
-    custom_id: Optional[str] = None
-    start_time: Optional[datetime] = None  # ← 追加
+    start_time: Optional[str] = None
 
 class NewsEdit(BaseModel):
     title: Optional[str] = None
     text: Optional[str] = None
     columns: Optional[str] = None
+    start_time: Optional[str] = None
 
 class NewsOut(BaseModel):
     id: str

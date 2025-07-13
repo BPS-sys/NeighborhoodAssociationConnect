@@ -36,7 +36,7 @@ export default function ScheduleScreen() {
   const todayStr = `${yyyy}-${mm}-${dd}`;
   const [selectedDate, setSelectedDate] = useState<string | null>(todayStr);
   const [fadeAnim] = useState(new Animated.Value(0));
-  const { RegionID, userName, regionName } = useAuth();
+  const { RegionID, regionName } = useAuth();
 
 
   const [refreshing, setRefreshing] = useState(false); // ✅ 追加
@@ -63,6 +63,7 @@ export default function ScheduleScreen() {
       const byDate: Record<string, { title: string; detail: string; starttime: string }[]> = {};
       for (const item of filtered) {
         const date = new Date(item.starttime);
+        date.setDate(date.getDate() + 1); // ✅ +1日補正
         const key = date.toISOString().split("T")[0];
 
         if (!byDate[key]) {
@@ -355,7 +356,7 @@ const styles = StyleSheet.create({
   
   // ヘッダー
   headerGradient: {
-    // paddingTop: Platform.OS === "ios" ? 50 : 30,
+    paddingTop: Platform.OS === 'ios' ? 50 : 20,
     paddingBottom: 10,
     paddingHorizontal: 20,
   },

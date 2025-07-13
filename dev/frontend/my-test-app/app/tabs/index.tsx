@@ -329,7 +329,7 @@ export default function HomeScreen() {
               <View style={styles.sectionIconContainer}>
                 <Ionicons name="calendar-outline" size={20} color="#667eea" />
               </View>
-              <Text style={styles.sectionTitle}>今週のイベント</Text>
+              <Text style={styles.sectionTitle}>予定されているイベント</Text>
             </View>
             
             <View style={styles.eventContainer}>
@@ -422,7 +422,7 @@ export default function HomeScreen() {
                     {selectedNotice?.title}
                   </Text>
                   <Text style={styles.modalDate}>
-                    {selectedNotice?.date.replace(/-/g,"/")}
+                    {selectedNotice && `${selectedNotice.sentDate.getFullYear()}/${(selectedNotice.sentDate.getMonth() + 1).toString().padStart(2, '0')}/${selectedNotice.sentDate.getDate().toString().padStart(2, '0')} ${selectedNotice.sentDate.getHours().toString().padStart(2, '0')}:${selectedNotice.sentDate.getMinutes().toString().padStart(2, '0')}`}
                   </Text>
 
                   {/* 🆕 Author 表示 */}

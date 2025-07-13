@@ -37,6 +37,8 @@ export default function ArticleScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isPostDisabled, setIsPostDisabled] = useState(false);
 
+  const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
+
   // 権限リクエスト
   useEffect(() => {
     (async () => {
@@ -48,6 +50,10 @@ export default function ArticleScreen() {
       }
     })();
   }, []);
+
+  const showPicker = (mode: 'date' | 'time') => {
+    setPickerMode(mode);
+  };
 
   // 画像選択 → URI 設定 & バイナリ変換
   const pickAndConvert = async () => {
@@ -112,8 +118,34 @@ export default function ArticleScreen() {
 
   // 日付選択ハンドラ
   const onChangeDate = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(Platform.OS === 'ios');
-    if (selectedDate) setStartTime(selectedDate);
+    if (event?.type === 'dismissed') {
+      setShowDatePicker(false);
+      return;
+    }
+
+    if (pickerMode === 'date' && selectedDate) {
+      // 日付選択後に時間Pickerを表示
+      const currentDate = selectedDate;
+      setStartTime((prev) => {
+        const updated = new Date(currentDate);
+        if (prev) {
+          updated.setHours(prev.getHours());
+          updated.setMinutes(prev.getMinutes());
+        }
+        return updated;
+      });
+      showPicker('time');
+    } else if (pickerMode === 'time' && selectedDate) {
+      // 時間選択後にstate更新
+      setStartTime((prev) => {
+        const updated = prev ? new Date(prev) : new Date();
+        updated.setHours(selectedDate.getHours());
+        updated.setMinutes(selectedDate.getMinutes());
+        return updated;
+      });
+      setShowDatePicker(false);
+      showPicker('date');
+    }
   };
 
   // 投稿処理
@@ -321,11 +353,12 @@ export default function ArticleScreen() {
               {showDatePicker && (
                 <DateTimePicker
                   value={startTime || new Date()}
-                  mode="datetime"
+                  mode={pickerMode}
                   display="default"
                   onChange={onChangeDate}
                 />
               )}
+
 
               <TouchableOpacity 
                 onPress={postArticle} 

@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
 
   // ヘッダー
   headerGradient: {
-    paddingTop: 20,
+    paddingTop: Platform.OS === 'ios' ? 50 : 30,
     paddingBottom: 20,
     paddingHorizontal: 20,
   },
@@ -363,17 +363,18 @@ const styles = StyleSheet.create({
   overflow: 'hidden',      // はみ出し防止
 },
   userBubble: {
-    backgroundColor: "#ffffff",
-    borderBottomRightRadius: 4,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  aiBubble: {
-    backgroundColor: "#ffffff",
-    borderBottomLeftRadius: 4,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
+  backgroundColor: "#dcf8c6", // ユーザー吹き出し色
+  borderBottomRightRadius: 4,
+  borderWidth: 1,
+  borderColor: '#e2e8f0',
+},
+aiBubble: {
+  backgroundColor: "#f1f0f0", // AI吹き出し色
+  borderBottomLeftRadius: 4,
+  borderWidth: 1,
+  borderColor: '#e2e8f0',
+},
+
   messageText: {
   fontSize: 16,
   lineHeight: 22,
@@ -435,16 +436,9 @@ const styles = StyleSheet.create({
 
   // 入力エリア
   inputContainer: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "transparent",
     paddingHorizontal: 16,
     paddingVertical: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
   },
   inputWrapper: {
     flexDirection: "row",

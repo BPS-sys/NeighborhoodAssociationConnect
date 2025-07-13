@@ -73,7 +73,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="article"
         options={{
-          title: "記事生成",
+          title: "記事投稿",
           href: userRole === "会員" ? null : undefined,
         }}
       />
