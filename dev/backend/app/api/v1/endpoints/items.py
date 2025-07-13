@@ -159,7 +159,7 @@ def edit_news(region_id: str, news_id: str, news: NewsEdit):
         'Text': news.text or current_data.get('Text', ''),
         'Time': datetime.now(),
         'columns': news.columns or current_data.get('columns', ''),
-        'StartTime': start_time_dt or current_data.get('StartTime', None)
+        'StartTime': start_time_dt
     }
     news_ref.update(update_data)
     return NewsOut(id=news_id, title=update_data['Title'], text=update_data['Text'], time=update_data['Time'], columns=update_data['columns'])
