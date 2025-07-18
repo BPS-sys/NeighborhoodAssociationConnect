@@ -129,20 +129,18 @@ def delete_near_region(region_id: str, doc_id: str):
 @router.post("/regions/{region_id}/news", response_model=NewsOut, summary="ニュースの追加")
 def add_news(region_id: str, news: NewsIn):
     news_ref = db.collection('Regions').document(region_id).collection('News')
+    start_time_dt = None
+    if news.start_time:
+        start_time_dt = datetime.fromisoformat(news.start_time)
     news_data = {
         'Title': news.title,
         'Text': news.text,
         'Time': datetime.now(),
         'columns': news.columns,
-        'StartTime': news.start_time
+        'StartTime': start_time_dt
     }
-    if news.custom_id:
-        doc_ref = news_ref.document(news.custom_id)
-        doc_ref.set(news_data)
-        doc_id = news.custom_id
-    else:
-        doc_ref = news_ref.add(news_data)[1]
-        doc_id = doc_ref.id
+    doc_ref = news_ref.add(news_data)[1]
+    doc_id = doc_ref.id
     return NewsOut(id=doc_id, title=news.title, text=news.text, time=news_data['Time'], columns=news.columns)
 
 # ---- ニュース編集 ----
@@ -153,11 +151,15 @@ def edit_news(region_id: str, news_id: str, news: NewsEdit):
     if not doc.exists:
         raise HTTPException(status_code=404, detail="News not found")
     current_data = doc.to_dict()
+    start_time_dt = None
+    if news.start_time:
+        start_time_dt = datetime.fromisoformat(news.start_time)
     update_data = {
         'Title': news.title or current_data.get('Title', ''),
         'Text': news.text or current_data.get('Text', ''),
         'Time': datetime.now(),
-        'columns': news.columns or current_data.get('columns', '')
+        'columns': news.columns or current_data.get('columns', ''),
+        'StartTime': start_time_dt
     }
     news_ref.update(update_data)
     return NewsOut(id=news_id, title=update_data['Title'], text=update_data['Text'], time=update_data['Time'], columns=update_data['columns'])
@@ -410,3 +412,41 @@ async def upload_binary_image(request: Request):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"OCRに失敗しました: {e}")
+    
+@router.get("/regions/{region_id}/users/messages", summary="指定地域のユーザー全員のメッセージ既読状態を取得")
+def get_region_users_messages(region_id: str):
+    try:
+        users_ref = db.collection("Users")
+        query = users_ref.where("RegionID", "==", region_id)
+        user_docs = query.stream()
+
+        result = []
+
+        for user_doc in user_docs:
+            user_id = user_doc.id
+            user_data = user_doc.to_dict()
+            messages_ref = db.collection("Users").document(user_id).collection("Messages")
+            message_docs = messages_ref.stream()
+
+            messages = []
+            for msg_doc in message_docs:
+                msg_data = msg_doc.to_dict()
+                messages.append({
+                    "message_id": msg_doc.id,
+                    "Title": msg_data.get("Title", ""),
+                    "Text": msg_data.get("Text", ""),
+                    "SentTime": msg_data.get("SentTime"),
+                    "read": msg_data.get("read", False),
+                    "author": msg_data.get("author", "")
+                })
+
+            result.append({
+                "user_id": user_id,
+                "user_name": user_data.get("name", ""),
+                "messages": messages
+            })
+
+        return result
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

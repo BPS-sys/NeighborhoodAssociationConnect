@@ -18,6 +18,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 import {
   createUserWithEmailAndPassword,
@@ -65,7 +66,7 @@ export default function RegisterScreen() {
     }).start();
     const fetchTownIds = async () => {
       try {
-        const res = await fetch('http://localhost:8080/api/v1/regions/names', {
+        const res = await fetch(`${Constants.expoConfig?.extra?.deployUrl}/api/v1/regions/names`, {
           headers: {
             'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`
           }
@@ -84,14 +85,7 @@ export default function RegisterScreen() {
   }, []);
 
   const togglePasswordVisibility = () => {
-    const currentScrollY = scrollPosition;
     setShowPassword(!showPassword);
-    
-    setTimeout(() => {
-      if (scrollViewRef.current) {
-        scrollViewRef.current.scrollTo({ y: currentScrollY, animated: false });
-      }
-    }, 10);
   };
 
   const handleScroll = (event: any) => {
@@ -124,8 +118,8 @@ export default function RegisterScreen() {
       setError('メールアドレスを入力してください。');
       return;
     }
-    if (password.length < 6) {
-      setError('パスワードは6文字以上で入力してください。');
+    if (password.length < 8) {
+      setError('パスワードは8文字以上で入力してください。');
       return;
     }
 
@@ -134,14 +128,15 @@ export default function RegisterScreen() {
     
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      await sendEmailVerification(userCredential.user);
+      // メール認証
+      // await sendEmailVerification(userCredential.user);
 
       const userId = userCredential.user.uid;
       const birthday = `${birthYear}${birthMonth}${birthDay}`;
       const phone_number = `${phone1}-${phone2}-${phone3}`;
 
       try {
-        const res = await fetch('http://192.168.11.7:8080/api/v1/regist/userid', {
+        const res = await fetch(`${Constants.expoConfig?.extra?.deployUrl}/api/v1/regist/userid`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -179,7 +174,7 @@ export default function RegisterScreen() {
       setPhone3('');
       setEmail('');
       setPassword('');
-      router.push('/auth/verify');
+      router.push('/auth/login');
     } catch (err: any) {
       let message = '登録に失敗しました。';
       if (err.code === 'auth/email-already-in-use') {
@@ -187,7 +182,7 @@ export default function RegisterScreen() {
       } else if (err.code === 'auth/invalid-email') {
         message = 'メールアドレスの形式が正しくありません。';
       } else if (err.code === 'auth/weak-password') {
-        message = 'パスワードが弱すぎます（6文字以上が必要です）。';
+        message = 'パスワードが弱すぎます（8文字以上が必要です）。';
       }
       setError(message);
     } finally {
@@ -215,20 +210,11 @@ export default function RegisterScreen() {
         </Animated.View>
       </LinearGradient>
 
-      <KeyboardAvoidingView 
-        style={styles.container} 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      <KeyboardAwareScrollView
+        enableOnAndroid
+        extraHeight={Platform.OS === 'ios' ? 60 : 80}
+        keyboardShouldPersistTaps="handled"
       >
-        <ScrollView 
-          ref={scrollViewRef}
-          contentContainerStyle={styles.scrollContainer}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          bounces={false}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-        >
           <View style={styles.formCard}>
             {error !== '' && (
               <Animated.View style={styles.errorContainer}>
@@ -449,7 +435,7 @@ export default function RegisterScreen() {
                 <MaterialIcons name="lock" size={18} color="#667eea" style={styles.inputIcon} />
                 <TextInput
                   style={styles.passwordInput}
-                  placeholder="6文字以上で入力"
+                  placeholder="8文字以上で入力"
                   secureTextEntry={!showPassword}
                   value={password}
                   onChangeText={(text) => {
@@ -473,15 +459,15 @@ export default function RegisterScreen() {
               <View style={styles.passwordStrength}>
                 <View style={[
                   styles.strengthBar,
+                  password.length >= 4 && styles.strengthBarActive
+                ]} />
+                <View style={[
+                  styles.strengthBar,
                   password.length >= 6 && styles.strengthBarActive
                 ]} />
                 <View style={[
                   styles.strengthBar,
                   password.length >= 8 && styles.strengthBarActive
-                ]} />
-                <View style={[
-                  styles.strengthBar,
-                  password.length >= 10 && styles.strengthBarActive
                 ]} />
               </View>
             </InputContainer>
@@ -527,8 +513,7 @@ export default function RegisterScreen() {
               <MaterialIcons name="login" size={16} color="#667eea" style={{ marginLeft: 4 }} />
             </TouchableOpacity>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }

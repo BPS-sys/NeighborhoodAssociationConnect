@@ -1,24 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Image,
-  StyleSheet,
-  Alert,
-  ActivityIndicator,
-  Platform,
-  ScrollView,
-  TextInput,
-  Dimensions,
-} from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Picker } from '@react-native-picker/picker';
+import Constants from 'expo-constants';
 import * as ImagePicker from 'expo-image-picker';
 import { Stack } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
-import { Picker } from '@react-native-picker/picker';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
-import Constants from 'expo-constants';
 
 const { width } = Dimensions.get('window');
 
@@ -37,6 +37,8 @@ export default function ArticleScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isPostDisabled, setIsPostDisabled] = useState(false);
 
+  const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
+
   // 権限リクエスト
   useEffect(() => {
     (async () => {
@@ -48,6 +50,10 @@ export default function ArticleScreen() {
       }
     })();
   }, []);
+
+  const showPicker = (mode: 'date' | 'time') => {
+    setPickerMode(mode);
+  };
 
   // 画像選択 → URI 設定 & バイナリ変換
   const pickAndConvert = async () => {
@@ -86,7 +92,7 @@ export default function ArticleScreen() {
     setLoadingUpload(true);
     setArticleText('');
     try {
-      const response = await fetch('http://localhost:8080/api/v1/upload-binary-image', {
+      const response = await fetch(`${Constants.expoConfig?.extra?.deployUrl}/api/v1/upload-binary-image`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`,
@@ -112,8 +118,34 @@ export default function ArticleScreen() {
 
   // 日付選択ハンドラ
   const onChangeDate = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(Platform.OS === 'ios');
-    if (selectedDate) setStartTime(selectedDate);
+    if (event?.type === 'dismissed') {
+      setShowDatePicker(false);
+      return;
+    }
+
+    if (pickerMode === 'date' && selectedDate) {
+      // 日付選択後に時間Pickerを表示
+      const currentDate = selectedDate;
+      setStartTime((prev) => {
+        const updated = new Date(currentDate);
+        if (prev) {
+          updated.setHours(prev.getHours());
+          updated.setMinutes(prev.getMinutes());
+        }
+        return updated;
+      });
+      showPicker('time');
+    } else if (pickerMode === 'time' && selectedDate) {
+      // 時間選択後にstate更新
+      setStartTime((prev) => {
+        const updated = prev ? new Date(prev) : new Date();
+        updated.setHours(selectedDate.getHours());
+        updated.setMinutes(selectedDate.getMinutes());
+        return updated;
+      });
+      setShowDatePicker(false);
+      showPicker('date');
+    }
   };
 
   // 投稿処理
@@ -135,7 +167,7 @@ export default function ArticleScreen() {
     };
 
     try {
-      const url = `http://localhost:8080/api/v1/regions/${RegionID}/news`;
+      const url = `${Constants.expoConfig?.extra?.deployUrl}/api/v1/regions/${RegionID}/news`;
 
       const response = await fetch(url, {
         method: "POST",
@@ -321,11 +353,12 @@ export default function ArticleScreen() {
               {showDatePicker && (
                 <DateTimePicker
                   value={startTime || new Date()}
-                  mode="datetime"
+                  mode={pickerMode}
                   display="default"
                   onChange={onChangeDate}
                 />
               )}
+
 
               <TouchableOpacity 
                 onPress={postArticle} 

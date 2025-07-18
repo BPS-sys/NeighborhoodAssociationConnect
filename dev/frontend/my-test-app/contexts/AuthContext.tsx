@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
 import Constants from 'expo-constants';
+import React, { createContext, useContext, useState } from 'react';
 
 interface AuthContextType {
   isLoggedIn: boolean;
@@ -36,7 +36,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const fetchUserInfo = async (id: string) => {
     try {
-      const res = await fetch(`http://localhost:8080/api/v1/user/${id}/info`, {
+      const res = await fetch(`${Constants.expoConfig?.extra?.deployUrl}/api/v1/user/${id}/info`, {
         headers: {
             'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`
           }
@@ -55,7 +55,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const fetchRegionName = async (regionId: string) => {
     try {
-      const res = await fetch(`http://localhost:8080/api/v1/regions/names`, {
+      const res = await fetch(`${Constants.expoConfig?.extra?.deployUrl}/api/v1/regions/names`, {
         headers: {
             'Authorization': `Bearer ${Constants.expoConfig?.extra?.backendAPIKey}`
           }
