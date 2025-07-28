@@ -11,7 +11,7 @@ COPY . /app
 WORKDIR /app
 
 # 必要なパッケージをインストール
-RUN uv sync --locked
+RUN uv sync
 
 # サーバーを起動
 CMD [".venv/bin/python", "app/main.py"]
