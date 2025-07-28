@@ -34,3 +34,10 @@ app.include_router(items.router, prefix="/api/v1")
 if __name__ == "__main__":
     # ugyGiVvlg4fDN2afMnoe(RegionID)
     uvicorn.run("main:app", host="0.0.0.0", port=8080, reload=True, log_level="debug")
+
+
+"""
+Copyright (c) 2025 YukiTakayama
+このソースコードは自由に使用、複製、改変、再配布することができます。
+ただし、著作権表示は削除しないでください。
+"""

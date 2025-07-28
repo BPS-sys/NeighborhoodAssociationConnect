@@ -52,3 +52,10 @@ class UserInfomationRequest(BaseModel):
 class SetReadState(BaseModel):
     user_id: str = Field(..., description="ユーザーID")
     message_id: str = Field(..., description="メッセージID")
+
+
+"""
+Copyright (c) 2025 YukiTakayama, SaihaHatanaka, ShingoNakano
+このソースコードは自由に使用、複製、改変、再配布することができます。
+ただし、著作権表示は削除しないでください。
+"""

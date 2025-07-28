@@ -147,3 +147,10 @@ def list_news(region_id: str):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+
+"""
+Copyright (c) 2025 SaihaHatanaka
+このソースコードは自由に使用、複製、改変、再配布することができます。
+ただし、著作権表示は削除しないでください。
+"""

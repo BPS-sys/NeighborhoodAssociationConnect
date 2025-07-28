@@ -231,3 +231,9 @@ class ChatAgent:
 
 if __name__ == "__main__":
     asyncio.run(ChatAgent(model_context="あなたはユーザーの質問に答える AI アシスタントです。").chat("近所の清掃当番っていつ？"))
+
+"""
+Copyright (c) 2025 YukiTakayama
+このソースコードは自由に使用、複製、改変、再配布することができます。
+ただし、著作権表示は削除しないでください。
+"""

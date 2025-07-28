@@ -136,3 +136,10 @@ if __name__ == "__main__":
     result = get_all_news_json(region_id, page_size=page_size)
     print("取得結果:")
     print(result)
+
+
+"""
+Copyright (c) 2025 YukiTakayama, SaihaHatanaka, ShingoNakano
+このソースコードは自由に使用、複製、改変、再配布することができます。
+ただし、著作権表示は削除しないでください。
+"""

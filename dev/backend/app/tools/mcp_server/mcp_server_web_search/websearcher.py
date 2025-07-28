@@ -25,3 +25,10 @@ if __name__ == "__main__":
     searcher = MCPWebSearcher()
     result_text = searcher.answer("大阪滝川地域活動 祭り 2025")
     print(result_text)
+
+
+"""
+Copyright (c) 2025 YukiTakayama
+このソースコードは自由に使用、複製、改変、再配布することができます。
+ただし、著作権表示は削除しないでください。
+"""

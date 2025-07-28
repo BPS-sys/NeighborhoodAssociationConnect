@@ -83,3 +83,10 @@ if __name__ == "__main__":
     print(f"完了トークン: {response.usage.completion_tokens}")
     print(f"プロンプトトークン: {response.usage.prompt_tokens}")
     print("Embedding:", len(em))
+
+
+"""
+Copyright (c) 2025 YukiTakayama
+このソースコードは自由に使用、複製、改変、再配布することができます。
+ただし、著作権表示は削除しないでください。
+"""

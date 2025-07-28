@@ -36,3 +36,9 @@ class Prototype:
                                                             payload_id=id)
                     print("writed setup qdrant!!!!!!!!!!!!!!!!!")
         print("complete setup Prototype!!!!!!!!!!!!!!")
+
+"""
+Copyright (c) 2025 YukiTakayama
+このソースコードは自由に使用、複製、改変、再配布することができます。
+ただし、著作権表示は削除しないでください。
+"""

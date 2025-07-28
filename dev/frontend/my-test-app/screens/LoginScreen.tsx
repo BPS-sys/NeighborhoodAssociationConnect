@@ -34,3 +34,8 @@ const styles = StyleSheet.create({
   button: { backgroundColor: '#00BCD4', padding: 12, borderRadius: 8 },
   buttonText: { color: '#fff', textAlign: 'center', fontSize: 16 },
 });
+
+
+// Copyright (c) 2025 JyuntaMukaihira, HayatoNakamura
+// このソースコードは自由に使用、複製、改変、再配布することができます。
+// ただし、著作権表示は削除しないでください。
