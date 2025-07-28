@@ -12,3 +12,10 @@ class WriteToCollectionInput(BaseModel):
     document: str = Field(..., description="必ずNoneを返してください。")
     embedding: List[Any] = Field(..., description="必ずNoneを返してください。")  # list[float] が適切ならそちらに変更可
     payload_id: str = Field(..., description="必ずNoneを返してください。")
+
+
+"""
+Copyright (c) 2025 YukiTakayama
+このソースコードは自由に使用、複製、改変、再配布することができます。
+ただし、著作権表示は削除しないでください。
+"""

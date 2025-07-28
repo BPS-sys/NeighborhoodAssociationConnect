@@ -32,3 +32,9 @@ def write_to_collection(args: WriteToCollectionInput):
 
 if __name__ == "__main__":
     mcp.run(transport="sse")
+
+"""
+Copyright (c) 2025 YukiTakayama
+このソースコードは自由に使用、複製、改変、再配布することができます。
+ただし、著作権表示は削除しないでください。
+"""

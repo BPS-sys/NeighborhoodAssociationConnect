@@ -11,3 +11,9 @@ class Article:
         response = self.chat_engine.chat(prompt)
         article = response.choices[0].message.content
         return article
+    
+"""
+Copyright (c) 2025 YukiTakayama
+このソースコードは自由に使用、複製、改変、再配布することができます。
+ただし、著作権表示は削除しないでください。
+"""

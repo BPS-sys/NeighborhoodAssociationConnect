@@ -60,3 +60,9 @@ for post in all_posts:
     else:
         print(f"[失敗] {post['columns']} - {post['title']}: {response.status_code}")
         print(response.text)
+
+"""
+Copyright (c) 2025 YukiTakayama
+このソースコードは自由に使用、複製、改変、再配布することができます。
+ただし、著作権表示は削除しないでください。
+"""
