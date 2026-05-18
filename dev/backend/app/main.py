@@ -23,7 +23,7 @@ async def verify_api_key(request: Request, call_next):
 # CORSを回避するための設定
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://.*\.exp\.direct", "http://localhost:8081"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

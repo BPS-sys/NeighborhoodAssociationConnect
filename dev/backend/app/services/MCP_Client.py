@@ -151,13 +151,15 @@ class ChatAgent:
                 transport = SSETransport(endpoint)
                 async with Client(transport=transport) as client:
                     result = await client.call_tool(tool_name, tool_args_json)
-                context = "\n\nユーザーが所属している町内会に関する情報：\n" + result[-1].text
+                print("Qdrantの結果：", result)
+                context = "\n\nユーザーが所属している町内会に関する情報：\n" + result.content[-1].text
         elif endpoint == MCPServers.web_search:
             if tool_name == "fetch_tool":
                 transport = SSETransport(endpoint)
                 async with Client(transport=transport) as client:
                     result = await client.call_tool(tool_name, tool_args_json)
-                context = "\n\nWEBでの検索結果（関係のない情報が入っているかもしれません）：" + result[-1].text
+                print("Web検索の結果：", result)
+                context = "\n\nWEBでの検索結果（関係のない情報が入っているかもしれません）：" + result.content[-1].text
         print(context)
         return context
     
